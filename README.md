@@ -1,22 +1,18 @@
-# 📝 Interactive Quiz Application
+# Interactive Quiz Application
 
 A modern, feature-rich web-based quiz application with customizable shuffle options and comprehensive result tracking.
 
-## 🚀 Live Demo
+## Live Demo
 
-**[Try it now on Vercel →](https://quiz-app-sage-delta-91.vercel.app/)**
+**[You can try it now on Vercel](https://quiz-app-sage-delta-91.vercel.app/)**
 
-## ✨ Features
+## Features
 
-- 📤 **JSON-based quizzes** - Upload your own quiz data
-- 🔀 **Smart shuffling** - Randomize questions and/or answer options
-- 🎯 **Per-question control** - Override shuffle settings for specific questions
-- 📊 **Progress tracking** - Visual progress bar throughout the quiz
-- 🎨 **Color-coded feedback** - Instant visual feedback on answers
-- 📝 **Detailed explanations** - Learn from each question
-- 🔍 **Review mode** - Comprehensive review of all answers after completion
-- 🔄 **Retry functionality** - Retake quizzes with re-shuffling
-- 📱 **Responsive design** - Works seamlessly on all devices
+- **JSON-based quizzes** - Upload your own quiz data
+- **Smart shuffling** - Randomize questions and/or answer options. Override shuffle settings for specific questions
+- **Review mode** - Comprehensive review of all answers after completion
+- **Retry functionality** - Retake quizzes with re-shuffling
+- **Responsive design** - Works seamlessly on all devices
 
 ## 🛠️ Tech Stack
 
@@ -25,7 +21,7 @@ A modern, feature-rich web-based quiz application with customizable shuffle opti
 - **Tailwind CSS** - Styling
 - **Lucide React** - Icons
 
-## 📋 How to Use
+## How to Use
 
 ### 1. Prepare Your Quiz JSON
 
@@ -84,12 +80,6 @@ After completing all questions:
 - **Retry** - Take the quiz again (with re-shuffling if enabled)
 - **Finish** - Upload a new quiz
 
-## 🎮 Shuffle Logic
-
-### Global Settings
-- **Shuffle Questions**: When ON, questions appear in random order
-- **Shuffle Options**: When ON, answer choices are randomized
-
 ### Per-Question Override
 - Add `"shuffle": 0` to any question to prevent its options from shuffling
 - Useful for questions where order matters (e.g., "All of the above", chronological order)
@@ -107,28 +97,10 @@ After completing all questions:
 ```
 In this example, options won't shuffle even if "Shuffle Options" is ON, preventing "All of the above" from appearing in the middle.
 
-## 🎯 Features in Detail
-
-### Smart Answer Tracking
-- Once answered, questions are locked (no changes allowed)
-- Correct answers highlighted in green
-- Incorrect answers highlighted in red
-- Navigate between questions to review locked answers
-
-### Progress Tracking
-- Visual progress bar showing completion percentage
-- Current question number and total count
-- Tracks answered vs. total questions
-
-### Results & Review
-- Comprehensive results screen with score breakdown
-- Full review mode showing all questions, answers, and explanations
-- Color-coded indicators for correct/incorrect answers
-
-## 🤝 Contributing
+## Contributing
 
 Feel free to open issues or submit pull requests for improvements!
 
-## 📄 License
+## License
 
 MIT License - feel free to use this project for personal or commercial purposes.
