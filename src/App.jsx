@@ -8,6 +8,58 @@ const QuizApp = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
   const [error, setError] = useState('');
+  const [shuffleQuestions, setShuffleQuestions] = useState(false);
+  const [shuffleOptions, setShuffleOptions] = useState(false);
+
+  // Shuffle array utility
+  const shuffleArray = (array) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
+  // Process quiz data with shuffling
+  const processQuizData = (data) => {
+    let processedQuestions = data.questions.map((q, idx) => ({
+      ...q,
+      originalIndex: idx
+    }));
+
+    // Shuffle questions if enabled
+    if (shuffleQuestions) {
+      processedQuestions = shuffleArray(processedQuestions);
+    }
+
+    // Shuffle options per question
+    processedQuestions = processedQuestions.map(q => {
+      // Check if this question should have options shuffled
+      const shouldShuffle = shuffleOptions && q.shuffle !== 0;
+      
+      if (!shouldShuffle) {
+        return q;
+      }
+
+      // Create array of [option, index] pairs
+      const optionsWithIndices = q.options.map((opt, idx) => ({ option: opt, originalIndex: idx }));
+      const shuffledOptions = shuffleArray(optionsWithIndices);
+
+      // Find new position of correct answer
+      const newCorrectIndex = shuffledOptions.findIndex(
+        item => item.originalIndex === q.correctAnswer
+      );
+
+      return {
+        ...q,
+        options: shuffledOptions.map(item => item.option),
+        correctAnswer: newCorrectIndex
+      };
+    });
+
+    return { ...data, questions: processedQuestions };
+  };
 
   // Validate JSON structure
   const validateQuizData = (data) => {
@@ -51,6 +103,10 @@ const QuizApp = () => {
         setAnswers({});
         setCurrentQuestion(0);
         setError('');
+        
+        // Process quiz data with shuffle settings
+        const processedData = processQuizData(data);
+        setQuizData(processedData);
         setView('quiz');
       } catch (err) {
         setError('Invalid JSON file format');
@@ -101,6 +157,14 @@ const QuizApp = () => {
   const resetQuiz = () => {
     setAnswers({});
     setCurrentQuestion(0);
+    // Re-process with current shuffle settings
+    const originalData = { questions: quizData.questions.map(q => {
+      // Remove processing artifacts to get back to original structure
+      const { originalIndex, ...cleanQuestion } = q;
+      return cleanQuestion;
+    })};
+    const processedData = processQuizData(originalData);
+    setQuizData(processedData);
     setView('quiz');
   };
 
@@ -125,6 +189,47 @@ const QuizApp = () => {
         </div>
 
         <div className="space-y-4">
+          {/* Shuffle toggles */}
+          <div className="space-y-3 mb-6">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <p className="font-medium text-gray-800">Shuffle Questions</p>
+                <p className="text-sm text-gray-600">Randomize question order</p>
+              </div>
+              <button
+                onClick={() => setShuffleQuestions(!shuffleQuestions)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  shuffleQuestions ? 'bg-indigo-600' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    shuffleQuestions ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <p className="font-medium text-gray-800">Shuffle Options</p>
+                <p className="text-sm text-gray-600">Randomize answer choices</p>
+              </div>
+              <button
+                onClick={() => setShuffleOptions(!shuffleOptions)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  shuffleOptions ? 'bg-indigo-600' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    shuffleOptions ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
           <label className="block">
             <div className="border-2 border-dashed border-indigo-300 rounded-lg p-8 text-center hover:border-indigo-500 transition-colors cursor-pointer">
               <input
@@ -155,10 +260,14 @@ const QuizApp = () => {
       "question": "Question text?",
       "options": ["A", "B", "C", "D"],
       "correctAnswer": 0,
-      "explanation": "Why A is correct"
+      "explanation": "Why A is correct",
+      "shuffle": 0
     }
   ]
-}`}
+}
+
+Note: "shuffle": 0 prevents option shuffling for
+that specific question`}
           </pre>
         </div>
       </div>
