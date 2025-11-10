@@ -132,7 +132,3 @@ Feel free to open issues or submit pull requests for improvements!
 ## 📄 License
 
 MIT License - feel free to use this project for personal or commercial purposes.
-
----
-
-Made with ❤️ using React and Tailwind CSS
