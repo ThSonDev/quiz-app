@@ -1,16 +1,138 @@
-# React + Vite
+# 📝 Interactive Quiz Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, feature-rich web-based quiz application with customizable shuffle options and comprehensive result tracking.
 
-Currently, two official plugins are available:
+## 🚀 Live Demo
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+**[Try it now on Vercel →](YOUR_VERCEL_LINK_HERE)**
 
-## React Compiler
+## ✨ Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- 📤 **JSON-based quizzes** - Upload your own quiz data
+- 🔀 **Smart shuffling** - Randomize questions and/or answer options
+- 🎯 **Per-question control** - Override shuffle settings for specific questions
+- 📊 **Progress tracking** - Visual progress bar throughout the quiz
+- 🎨 **Color-coded feedback** - Instant visual feedback on answers
+- 📝 **Detailed explanations** - Learn from each question
+- 🔍 **Review mode** - Comprehensive review of all answers after completion
+- 🔄 **Retry functionality** - Retake quizzes with re-shuffling
+- 📱 **Responsive design** - Works seamlessly on all devices
 
-## Expanding the ESLint configuration
+## 🛠️ Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **React** - UI library
+- **JavaScript (ES6+)** - Core logic
+- **Tailwind CSS** - Styling
+- **Lucide React** - Icons
+
+## 📋 How to Use
+
+### 1. Prepare Your Quiz JSON
+
+Create a JSON file with the following structure:
+
+```json
+{
+  "questions": [
+    {
+      "question": "What is the capital of France?",
+      "options": ["London", "Paris", "Berlin", "Madrid"],
+      "correctAnswer": 1,
+      "explanation": "Paris is the capital and largest city of France."
+    },
+    {
+      "question": "What is 2 + 2?",
+      "options": ["3", "4", "5", "6"],
+      "correctAnswer": 1,
+      "explanation": "Basic arithmetic: 2 + 2 = 4",
+      "shuffle": 0
+    }
+  ]
+}
+```
+
+#### JSON Schema
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `question` | string | ✅ Yes | The question text |
+| `options` | array | ✅ Yes | Array of answer choices (minimum 2) |
+| `correctAnswer` | number | ✅ Yes | Index of the correct answer (0-based) |
+| `explanation` | string | ✅ Yes | Explanation shown after answering |
+| `shuffle` | number | ❌ No | Set to `0` to prevent option shuffling for this question |
+
+### 2. Configure Shuffle Settings
+
+Before uploading your quiz:
+- Toggle **"Shuffle Questions"** to randomize question order
+- Toggle **"Shuffle Options"** to randomize answer choices
+- Both are OFF by default
+
+### 3. Upload and Start
+
+1. Click the upload area or drag-and-drop your JSON file
+2. The app validates your file and starts the quiz
+3. Answer questions one at a time
+4. Navigate with Previous/Next buttons
+
+### 4. View Results
+
+After completing all questions:
+- See your score (out of 10)
+- View correct/incorrect counts
+- **Review** - See all questions with correct answers
+- **Retry** - Take the quiz again (with re-shuffling if enabled)
+- **Finish** - Upload a new quiz
+
+## 🎮 Shuffle Logic
+
+### Global Settings
+- **Shuffle Questions**: When ON, questions appear in random order
+- **Shuffle Options**: When ON, answer choices are randomized
+
+### Per-Question Override
+- Add `"shuffle": 0` to any question to prevent its options from shuffling
+- Useful for questions where order matters (e.g., "All of the above", chronological order)
+- Other questions still follow the global shuffle setting
+
+### Example
+```json
+{
+  "question": "Which of the following are primary colors?",
+  "options": ["Red", "Blue", "Yellow", "All of the above"],
+  "correctAnswer": 3,
+  "explanation": "Red, blue, and yellow are primary colors.",
+  "shuffle": 0
+}
+```
+In this example, options won't shuffle even if "Shuffle Options" is ON, preventing "All of the above" from appearing in the middle.
+
+## 🎯 Features in Detail
+
+### Smart Answer Tracking
+- Once answered, questions are locked (no changes allowed)
+- Correct answers highlighted in green
+- Incorrect answers highlighted in red
+- Navigate between questions to review locked answers
+
+### Progress Tracking
+- Visual progress bar showing completion percentage
+- Current question number and total count
+- Tracks answered vs. total questions
+
+### Results & Review
+- Comprehensive results screen with score breakdown
+- Full review mode showing all questions, answers, and explanations
+- Color-coded indicators for correct/incorrect answers
+
+## 🤝 Contributing
+
+Feel free to open issues or submit pull requests for improvements!
+
+## 📄 License
+
+MIT License - feel free to use this project for personal or commercial purposes.
+
+---
+
+Made with ❤️ using React and Tailwind CSS
