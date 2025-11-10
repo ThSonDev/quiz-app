@@ -4,7 +4,7 @@ A modern, feature-rich web-based quiz application with customizable shuffle opti
 
 ## 🚀 Live Demo
 
-**[Try it now on Vercel →](YOUR_VERCEL_LINK_HERE)**
+**[Try it now on Vercel →](https://quiz-app-sage-delta-91.vercel.app/)**
 
 ## ✨ Features
 
