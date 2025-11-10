@@ -14,7 +14,7 @@ A modern, feature-rich web-based quiz application with customizable shuffle opti
 - **Retry functionality** - Retake quizzes with re-shuffling
 - **Responsive design** - Works seamlessly on all devices
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **React** - UI library
 - **JavaScript (ES6+)** - Core logic
