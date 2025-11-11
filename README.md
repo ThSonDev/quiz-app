@@ -10,6 +10,7 @@ A modern, feature-rich web-based quiz application with customizable shuffle opti
 
 - **JSON-based quizzes** - Upload your own quiz data
 - **Smart shuffling** - Randomize questions and/or answer options. Override shuffle settings for specific questions
+- **Quiz Size (%)** - Choose what percentage of the total questions to include (e.g., 50% = half the quiz)
 - **Review mode** - Comprehensive review of all answers after completion
 - **Retry functionality** - Retake quizzes with re-shuffling
 - **Responsive design** - Works seamlessly on all devices
@@ -54,7 +55,7 @@ Create a JSON file with the following structure:
 | `question` | string | ✅ Yes | The question text |
 | `options` | array | ✅ Yes | Array of answer choices (minimum 2) |
 | `correctAnswer` | number | ✅ Yes | Index of the correct answer (0-based) |
-| `explanation` | string | ✅ Yes | Explanation shown after answering |
+| `explanation` | string | ❌ No | Explanation shown after answering |
 | `shuffle` | number | ❌ No | Set to `0` to prevent option shuffling for this question |
 
 ### 2. Configure Shuffle Settings
@@ -62,7 +63,10 @@ Create a JSON file with the following structure:
 Before uploading your quiz:
 - Toggle **"Shuffle Questions"** to randomize question order
 - Toggle **"Shuffle Options"** to randomize answer choices
-- Both are OFF by default
+- Both shuffle options are OFF by default
+- Set **"Quiz Size (%)"** to choose what portion of the quiz to take  
+  - Default: `100` (use all questions)  
+  - Range: `10–100`
 
 ### 3. Upload and Start
 

@@ -5,11 +5,19 @@ import { Upload, ArrowRight, ArrowLeft, RotateCcw, X, Eye } from 'lucide-react';
 const QuizApp = () => {
   const [view, setView] = useState('upload'); // upload, quiz, results, review
   const [quizData, setQuizData] = useState(null);
+  const [originalQuizData, setOriginalQuizData] = useState(null); // Store original unprocessed data
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
   const [error, setError] = useState('');
   const [shuffleQuestions, setShuffleQuestions] = useState(false);
   const [shuffleOptions, setShuffleOptions] = useState(false);
+  const [quizSize, setQuizSize] = useState(100);
+  // Store settings used when quiz started
+  const [activeSettings, setActiveSettings] = useState({
+    shuffleQuestions: false,
+    shuffleOptions: false,
+    quizSize: 100
+  });
 
   // Shuffle array utility
   const shuffleArray = (array) => {
@@ -22,21 +30,27 @@ const QuizApp = () => {
   };
 
   // Process quiz data with shuffling
-  const processQuizData = (data) => {
+  const processQuizData = (data, settings) => {
     let processedQuestions = data.questions.map((q, idx) => ({
       ...q,
       originalIndex: idx
     }));
 
     // Shuffle questions if enabled
-    if (shuffleQuestions) {
+    if (settings.shuffleQuestions) {
       processedQuestions = shuffleArray(processedQuestions);
+    }
+
+    // Apply quiz size percentage (subset of questions)
+    if (settings.quizSize < 100) {
+      const targetCount = Math.max(1, Math.ceil((settings.quizSize / 100) * processedQuestions.length));
+      processedQuestions = processedQuestions.slice(0, targetCount);
     }
 
     // Shuffle options per question
     processedQuestions = processedQuestions.map(q => {
       // Check if this question should have options shuffled
-      const shouldShuffle = shuffleOptions && q.shuffle !== 0;
+      const shouldShuffle = settings.shuffleOptions && q.shuffle !== 0;
       
       if (!shouldShuffle) {
         return q;
@@ -70,7 +84,7 @@ const QuizApp = () => {
     for (let i = 0; i < data.questions.length; i++) {
       const q = data.questions[i];
       if (!q.question || !q.options || !Array.isArray(q.options) || 
-          q.correctAnswer === undefined || !q.explanation) {
+          q.correctAnswer === undefined) {
         return `Invalid question format at index ${i}`;
       }
       if (q.options.length < 2) {
@@ -99,13 +113,33 @@ const QuizApp = () => {
           return;
         }
 
-        setQuizData(data);
+        // Validate minimum questions
+        if (data.questions.length < 2) {
+          setError('Quiz must contain at least 2 questions');
+          return;
+        }
+
+        // Validate quiz size
+        if (quizSize < 10 || quizSize > 100) {
+          setError('Quiz Size must be between 10% and 100%');
+          return;
+        }
+
+        // Store original data and current settings
+        setOriginalQuizData(data);
+        const currentSettings = {
+          shuffleQuestions,
+          shuffleOptions,
+          quizSize
+        };
+        setActiveSettings(currentSettings);
+
         setAnswers({});
         setCurrentQuestion(0);
         setError('');
         
         // Process quiz data with shuffle settings
-        const processedData = processQuizData(data);
+        const processedData = processQuizData(data, currentSettings);
         setQuizData(processedData);
         setView('quiz');
       } catch (err) {
@@ -123,6 +157,14 @@ const QuizApp = () => {
       ...answers,
       [currentQuestion]: optionIndex
     });
+  };
+
+  // Handle quiz size input change
+  const handleQuizSizeChange = (e) => {
+    const value = parseInt(e.target.value);
+    if (!isNaN(value)) {
+      setQuizSize(Math.min(100, Math.max(10, value)));
+    }
   };
 
   // Navigation
@@ -155,15 +197,12 @@ const QuizApp = () => {
 
   // Reset quiz
   const resetQuiz = () => {
+    // Use the original quiz data and active settings from when quiz started
     setAnswers({});
     setCurrentQuestion(0);
-    // Re-process with current shuffle settings
-    const originalData = { questions: quizData.questions.map(q => {
-      // Remove processing artifacts to get back to original structure
-      const { originalIndex, ...cleanQuestion } = q;
-      return cleanQuestion;
-    })};
-    const processedData = processQuizData(originalData);
+    
+    // Re-process with the same settings that were used initially
+    const processedData = processQuizData(originalQuizData, activeSettings);
     setQuizData(processedData);
     setView('quiz');
   };
@@ -171,6 +210,7 @@ const QuizApp = () => {
   // Return to upload
   const finishQuiz = () => {
     setQuizData(null);
+    setOriginalQuizData(null);
     setAnswers({});
     setCurrentQuestion(0);
     setView('upload');
@@ -230,6 +270,27 @@ const QuizApp = () => {
             </div>
           </div>
 
+          {/* Quiz Size input */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex-1">
+              <label htmlFor="quizSize" className="font-medium text-gray-800 block">
+                Quiz Size (%)
+              </label>
+              <p className="text-sm text-gray-600">
+                Use this to take only part of the quiz (e.g., 50 = half of the questions)
+              </p>
+            </div>
+            <input
+              id="quizSize"
+              type="number"
+              min="10"
+              max="100"
+              value={quizSize}
+              onChange={handleQuizSizeChange}
+              className="w-20 px-3 py-2 border-2 border-gray-300 rounded-lg text-center font-semibold text-gray-800 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
           <label className="block">
             <div className="border-2 border-dashed border-indigo-300 rounded-lg p-8 text-center hover:border-indigo-500 transition-colors cursor-pointer">
               <input
@@ -266,8 +327,8 @@ const QuizApp = () => {
   ]
 }
 
-Note: "shuffle": 0 prevents option shuffling for
-that specific question`}
+Note: "shuffle": 0 prevents option 
+shuffling for that specific question`}
           </pre>
         </div>
       </div>
@@ -342,7 +403,7 @@ that specific question`}
             </div>
 
             {/* Explanation */}
-            {isAnswered && (
+            {isAnswered && question.explanation && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="font-semibold text-blue-900 mb-1">Explanation:</p>
                 <p className="text-blue-800">{question.explanation}</p>
@@ -366,7 +427,12 @@ that specific question`}
 
               <button
                 onClick={goToNext}
-                className="flex items-center px-6 py-3 rounded-lg font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-all"
+                disabled={!isAnswered}
+                className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all ${
+                  !isAnswered
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
               >
                 {currentQuestion === totalQuestions - 1 && answeredCount === totalQuestions
                   ? 'Finish'
@@ -383,6 +449,7 @@ that specific question`}
   // Render results view
   const renderResults = () => {
     const { correct, incorrect, score } = calculateResults();
+    const showPercentage = quizSize < 100;
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
@@ -391,7 +458,9 @@ that specific question`}
             <div className="bg-green-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-4xl font-bold text-green-600">{score}</span>
             </div>
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">Quiz Complete!</h2>
+            <h2 className="text-3xl font-bold text-gray-800 mb-2">
+              Quiz Complete!{showPercentage && ` (${quizSize}%)`}
+            </h2>
             <p className="text-gray-600">Here are your results</p>
           </div>
 
@@ -443,6 +512,16 @@ that specific question`}
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-4">
         <div className="max-w-4xl mx-auto py-8">
+          {/* Sticky header with back button */}
+          <div className="sticky top-4 z-10 mb-6">
+            <button
+              onClick={() => setView('results')}
+              className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all shadow-lg"
+            >
+              ← Back to Results
+            </button>
+          </div>
+
           <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Review All Answers</h2>
             <p className="text-gray-600">See all questions, correct answers, and explanations</p>
@@ -500,15 +579,6 @@ that specific question`}
                 </div>
               );
             })}
-          </div>
-
-          <div className="mt-6">
-            <button
-              onClick={() => setView('results')}
-              className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all"
-            >
-              Back to Results
-            </button>
           </div>
         </div>
       </div>
