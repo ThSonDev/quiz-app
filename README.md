@@ -10,7 +10,7 @@ A modern, feature-rich web-based quiz application with customizable shuffle opti
 
 - **JSON-based quizzes** - Upload your own quiz data
 - **Smart shuffling** - Randomize questions and/or answer options. Override shuffle settings for specific questions
-- **Quiz Size (%)** - Choose what percentage of the total questions to include (e.g., 50% = half the quiz)
+- **Quiz Size (%)** - Choose what percentage of the total questions to include (e.g., 50% = half the quiz) or specify the exact number of questions to attempt
 - **Review mode** - Comprehensive review of all answers after completion
 - **Retry functionality** - Retake quizzes with re-shuffling
 - **Responsive design** - Works seamlessly on all devices
@@ -64,16 +64,18 @@ Before uploading your quiz:
 - Toggle **"Shuffle Questions"** to randomize question order
 - Toggle **"Shuffle Options"** to randomize answer choices
 - Both shuffle options are OFF by default
-- Set **"Quiz Size (%)"** to choose what portion of the quiz to take  
+- Set **"Quiz Size (%/#)"** to choose how many questions to take: 
   - Default: `100` (use all questions)  
-  - Range: `10–100`
+  - Range: `10–100` (for percentage mode)
+  - Or the exact number of questions you want to answer (number mode)
 
 ### 3. Upload and Start
 
 1. Click the upload area or drag-and-drop your JSON file
-2. The app validates your file and starts the quiz
-3. Answer questions one at a time
-4. Navigate with Previous/Next buttons
+2. The app validates your file and show the total number of questions
+4. Click Start quiz to begin
+5. Answer questions one at a time
+6. Navigate with Previous/Next buttons
 
 ### 4. View Results
 
