@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { Upload, ArrowRight, ArrowLeft, RotateCcw, X, Eye } from 'lucide-react';
+import { Upload, ArrowRight, ArrowLeft, RotateCcw, X, Eye, FileText } from 'lucide-react';
 
 // Quiz state management
 const QuizApp = () => {
   const [view, setView] = useState('upload'); // upload, quiz, results, review
   const [quizData, setQuizData] = useState(null);
   const [originalQuizData, setOriginalQuizData] = useState(null); // Store original unprocessed data
+  const [uploadedFile, setUploadedFile] = useState(null); // Store uploaded file info
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
   const [error, setError] = useState('');
   const [shuffleQuestions, setShuffleQuestions] = useState(false);
   const [shuffleOptions, setShuffleOptions] = useState(false);
-  const [quizSize, setQuizSize] = useState(100);
+  const [quizSize, setQuizSize] = useState('100');
+  const [quizSizeMode, setQuizSizeMode] = useState('percentage'); // 'percentage' or 'count'
   // Store settings used when quiz started
   const [activeSettings, setActiveSettings] = useState({
     shuffleQuestions: false,
@@ -41,10 +43,12 @@ const QuizApp = () => {
       processedQuestions = shuffleArray(processedQuestions);
     }
 
-    // Apply quiz size percentage (subset of questions)
-    if (settings.quizSize < 100) {
+    // Apply quiz size (percentage or count)
+    if (settings.quizSizeMode === 'percentage' && settings.quizSize < 100) {
       const targetCount = Math.max(1, Math.ceil((settings.quizSize / 100) * processedQuestions.length));
       processedQuestions = processedQuestions.slice(0, targetCount);
+    } else if (settings.quizSizeMode === 'count') {
+      processedQuestions = processedQuestions.slice(0, settings.quizSize);
     }
 
     // Shuffle options per question
@@ -110,43 +114,86 @@ const QuizApp = () => {
         
         if (validationError) {
           setError(validationError);
+          setUploadedFile(null);
           return;
         }
 
         // Validate minimum questions
         if (data.questions.length < 2) {
           setError('Quiz must contain at least 2 questions');
+          setUploadedFile(null);
           return;
         }
 
-        // Validate quiz size
-        if (quizSize < 10 || quizSize > 100) {
-          setError('Quiz Size must be between 10% and 100%');
-          return;
-        }
-
-        // Store original data and current settings
+        // Store uploaded file info and original data
+        setUploadedFile({
+          name: file.name,
+          questionCount: data.questions.length
+        });
         setOriginalQuizData(data);
-        const currentSettings = {
-          shuffleQuestions,
-          shuffleOptions,
-          quizSize
-        };
-        setActiveSettings(currentSettings);
-
-        setAnswers({});
-        setCurrentQuestion(0);
         setError('');
-        
-        // Process quiz data with shuffle settings
-        const processedData = processQuizData(data, currentSettings);
-        setQuizData(processedData);
-        setView('quiz');
       } catch (err) {
         setError('Invalid JSON file format');
+        setUploadedFile(null);
       }
     };
     reader.readAsText(file);
+  };
+
+  // Start quiz after validation
+  const startQuiz = () => {
+    if (!originalQuizData) return;
+
+    // Parse and validate quiz size
+    const sizeValue = quizSize.trim();
+    
+    if (sizeValue === '') {
+      setError('Please enter a quiz size value');
+      return;
+    }
+
+    const parsedSize = parseInt(sizeValue);
+    
+    if (isNaN(parsedSize)) {
+      setError('Quiz size must be a valid number');
+      return;
+    }
+
+    if (quizSizeMode === 'percentage') {
+      // Percentage mode validation
+      if (parsedSize < 10 || parsedSize > 100) {
+        setError('Quiz Size must be between 10% and 100%');
+        return;
+      }
+    } else {
+      // Question count mode validation
+      if (parsedSize < 2) {
+        setError('Quiz must have at least 2 questions');
+        return;
+      }
+      if (parsedSize > originalQuizData.questions.length) {
+        setError(`Question count cannot exceed ${originalQuizData.questions.length} (total available questions)`);
+        return;
+      }
+    }
+
+    // Store active settings
+    const currentSettings = {
+      shuffleQuestions,
+      shuffleOptions,
+      quizSize: parsedSize,
+      quizSizeMode
+    };
+    setActiveSettings(currentSettings);
+
+    setAnswers({});
+    setCurrentQuestion(0);
+    setError('');
+    
+    // Process quiz data with shuffle settings
+    const processedData = processQuizData(originalQuizData, currentSettings);
+    setQuizData(processedData);
+    setView('quiz');
   };
 
   // Handle answer selection
@@ -161,10 +208,28 @@ const QuizApp = () => {
 
   // Handle quiz size input change
   const handleQuizSizeChange = (e) => {
-    const value = parseInt(e.target.value);
-    if (!isNaN(value)) {
-      setQuizSize(Math.min(100, Math.max(10, value)));
+    const value = e.target.value;
+    
+    // Allow empty input while typing
+    if (value === '') {
+      setQuizSize('');
+      return;
     }
+    
+    // Only allow numeric input
+    if (!/^\d+$/.test(value)) {
+      return;
+    }
+    
+    const numValue = parseInt(value);
+    
+    // Auto-clamp to 100 if in percentage mode and value exceeds 100
+    if (quizSizeMode === 'percentage' && numValue > 100) {
+      setQuizSize('100');
+      return;
+    }
+    
+    setQuizSize(value);
   };
 
   // Navigation
@@ -211,8 +276,10 @@ const QuizApp = () => {
   const finishQuiz = () => {
     setQuizData(null);
     setOriginalQuizData(null);
+    setUploadedFile(null);
     setAnswers({});
     setCurrentQuestion(0);
+    setError('');
     setView('upload');
   };
 
@@ -271,39 +338,94 @@ const QuizApp = () => {
           </div>
 
           {/* Quiz Size input */}
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div className="flex-1">
-              <label htmlFor="quizSize" className="font-medium text-gray-800 block">
-                Quiz Size (%)
-              </label>
-              <p className="text-sm text-gray-600">
-                Use this to take only part of the quiz (e.g., 50 = half of the questions)
-              </p>
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex-1">
+                <label htmlFor="quizSize" className="font-medium text-gray-800 block">
+                  Quiz Size
+                </label>
+                <p className="text-sm text-gray-600">
+                  {quizSizeMode === 'percentage' 
+                    ? 'Take a percentage of questions (50 = half)'
+                    : 'Specify exact number of questions to attempt'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setQuizSizeMode('percentage')}
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    quizSizeMode === 'percentage'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                  }`}
+                >
+                  %
+                </button>
+                <button
+                  onClick={() => setQuizSizeMode('count')}
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    quizSizeMode === 'count'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                  }`}
+                >
+                  #
+                </button>
+              </div>
             </div>
-            <input
-              id="quizSize"
-              type="number"
-              min="10"
-              max="100"
-              value={quizSize}
-              onChange={handleQuizSizeChange}
-              className="w-20 px-3 py-2 border-2 border-gray-300 rounded-lg text-center font-semibold text-gray-800 focus:outline-none focus:border-indigo-500"
-            />
+            <div className="flex items-center gap-2">
+              <input
+                id="quizSize"
+                type="text"
+                inputMode="numeric"
+                value={quizSize}
+                onChange={handleQuizSizeChange}
+                placeholder={quizSizeMode === 'percentage' ? '100' : '10'}
+                className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg font-semibold text-gray-800 focus:outline-none focus:border-indigo-500"
+              />
+              <span className="text-gray-600 font-medium">
+                {quizSizeMode === 'percentage' ? '%' : 'questions'}
+              </span>
+            </div>
           </div>
 
-          <label className="block">
-            <div className="border-2 border-dashed border-indigo-300 rounded-lg p-8 text-center hover:border-indigo-500 transition-colors cursor-pointer">
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              <Upload className="w-12 h-12 text-indigo-400 mx-auto mb-2" />
-              <p className="text-gray-700 font-medium">Click to upload JSON file</p>
-              <p className="text-gray-500 text-sm mt-1">or drag and drop</p>
+          {/* File upload or uploaded file display */}
+          {!uploadedFile ? (
+            <label className="block">
+              <div className="border-2 border-dashed border-indigo-300 rounded-lg p-8 text-center hover:border-indigo-500 transition-colors cursor-pointer">
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <Upload className="w-12 h-12 text-indigo-400 mx-auto mb-2" />
+                <p className="text-gray-700 font-medium">Click to upload JSON file</p>
+                <p className="text-gray-500 text-sm mt-1">or drag and drop</p>
+              </div>
+            </label>
+          ) : (
+            <div className="border-2 border-green-300 bg-green-50 rounded-lg p-6">
+              <div className="flex items-start gap-4">
+                <div className="bg-green-100 p-3 rounded-lg">
+                  <FileText className="w-8 h-8 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-800 mb-1">{uploadedFile.name}</p>
+                  <p className="text-gray-600 text-sm">
+                    {uploadedFile.questionCount} questions loaded
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={startQuiz}
+                className="w-full mt-4 px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+              >
+                Start Quiz
+                <ArrowRight className="w-5 h-5" />
+              </button>
             </div>
-          </label>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
@@ -449,7 +571,7 @@ shuffling for that specific question`}
   // Render results view
   const renderResults = () => {
     const { correct, incorrect, score } = calculateResults();
-    const showPercentage = quizSize < 100;
+    const showPercentage = activeSettings.quizSizeMode === 'percentage' && activeSettings.quizSize < 100;
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
@@ -459,7 +581,7 @@ shuffling for that specific question`}
               <span className="text-4xl font-bold text-green-600">{score}</span>
             </div>
             <h2 className="text-3xl font-bold text-gray-800 mb-2">
-              Quiz Complete!{showPercentage && ` (${quizSize}%)`}
+              Quiz Complete!{showPercentage && ` (${activeSettings.quizSize}%)`}
             </h2>
             <p className="text-gray-600">Here are your results</p>
           </div>
