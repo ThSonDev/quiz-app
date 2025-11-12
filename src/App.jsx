@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, ArrowRight, ArrowLeft, RotateCcw, X, Eye, FileText } from 'lucide-react';
+import { Upload, ArrowRight, ArrowLeft, RotateCcw, X, Eye, FileText, Home } from 'lucide-react';
 
 // Quiz state management
 const QuizApp = () => {
@@ -14,6 +14,8 @@ const QuizApp = () => {
   const [shuffleOptions, setShuffleOptions] = useState(false);
   const [quizSize, setQuizSize] = useState('100');
   const [quizSizeMode, setQuizSizeMode] = useState('percentage'); // 'percentage' or 'count'
+  const [showRetryModal, setShowRetryModal] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
   // Store settings used when quiz started
   const [activeSettings, setActiveSettings] = useState({
     shuffleQuestions: false,
@@ -262,13 +264,35 @@ const QuizApp = () => {
 
   // Reset quiz
   const resetQuiz = () => {
-    // Use the original quiz data and active settings from when quiz started
+    // Check if any shuffle was active
+    const hasShuffleActive = activeSettings.shuffleQuestions || activeSettings.shuffleOptions;
+    
+    if (hasShuffleActive) {
+      // Show modal to choose retry method
+      setShowRetryModal(true);
+    } else {
+      // No shuffle, just retry with same data
+      retrySameLayout();
+    }
+  };
+
+  // Retry with same layout (no reshuffle)
+  const retrySameLayout = () => {
+    setAnswers({});
+    setCurrentQuestion(0);
+    setShowRetryModal(false);
+    setView('quiz');
+  };
+
+  // Retry with new shuffle
+  const retryNewShuffle = () => {
     setAnswers({});
     setCurrentQuestion(0);
     
-    // Re-process with the same settings that were used initially
+    // Re-process with the same settings to get new shuffle
     const processedData = processQuizData(originalQuizData, activeSettings);
     setQuizData(processedData);
+    setShowRetryModal(false);
     setView('quiz');
   };
 
@@ -280,7 +304,13 @@ const QuizApp = () => {
     setAnswers({});
     setCurrentQuestion(0);
     setError('');
+    setShowExitModal(false);
     setView('upload');
+  };
+
+  // Handle exit confirmation
+  const handleExitQuiz = () => {
+    setShowExitModal(true);
   };
 
   // Render upload view
@@ -346,7 +376,7 @@ const QuizApp = () => {
                 </label>
                 <p className="text-sm text-gray-600">
                   {quizSizeMode === 'percentage' 
-                    ? 'Take a percentage of questions (50 = half)'
+                    ? 'Take a percentage of questions (e.g., 50 = half)'
                     : 'Specify exact number of questions to attempt'}
                 </p>
               </div>
@@ -453,6 +483,18 @@ Note: "shuffle": 0 prevents option
 shuffling for that specific question`}
           </pre>
         </div>
+
+        {/* Repository link */}
+        <div className="mt-6 text-center">
+          <a
+            href="https://github.com/ThSonDev/quiz-app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-indigo-600 hover:text-indigo-800 underline"
+          >
+            View on GitHub
+          </a>
+        </div>
       </div>
     </div>
   );
@@ -469,6 +511,17 @@ shuffling for that specific question`}
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 p-4">
         <div className="max-w-3xl mx-auto py-8">
+          {/* Return button */}
+          <div className="mb-4">
+            <button
+              onClick={handleExitQuiz}
+              className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-all"
+            >
+              <Home className="w-4 h-4 mr-2" />
+              Return to Upload
+            </button>
+          </div>
+
           {/* Progress bar */}
           <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
             <div className="flex justify-between items-center mb-2">
@@ -714,6 +767,86 @@ shuffling for that specific question`}
       {view === 'quiz' && renderQuiz()}
       {view === 'results' && renderResults()}
       {view === 'review' && renderReview()}
+      
+      {/* Retry Modal */}
+      {showRetryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full animate-fadeInUp">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Retry Quiz</h3>
+            <p className="text-gray-600 mb-6">
+              Choose how you want to retry the quiz:
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={retrySameLayout}
+                className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all"
+              >
+                Same Layout
+                <span className="block text-sm text-indigo-200 mt-1">
+                  Keep the same question and option order
+                </span>
+              </button>
+              <button
+                onClick={retryNewShuffle}
+                className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-all"
+              >
+                New Shuffle
+                <span className="block text-sm text-purple-200 mt-1">
+                  Randomize questions and options again
+                </span>
+              </button>
+              <button
+                onClick={() => setShowRetryModal(false)}
+                className="w-full px-6 py-3 bg-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-400 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exit Confirmation Modal */}
+      {showExitModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full animate-fadeInUp">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Exit Quiz?</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to exit? Your progress will be lost.
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={finishQuiz}
+                className="w-full px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-all"
+              >
+                Yes, Exit Quiz
+              </button>
+              <button
+                onClick={() => setShowExitModal(false)}
+                className="w-full px-6 py-3 bg-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-400 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fadeInUp {
+          animation: fadeInUp 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };
