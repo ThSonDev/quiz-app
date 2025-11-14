@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { shuffleArray, validateQuizData, processQuizData } from "../../utils/upload.js";
 
 const JSONUploadPage = ({
   isDarkMode,
@@ -20,67 +21,6 @@ const JSONUploadPage = ({
   const inputBg = isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-300';
   const textColor = isDarkMode ? 'text-gray-200' : 'text-gray-800';
   const mutedText = isDarkMode ? 'text-gray-400' : 'text-gray-600';
-
-  // Utility functions
-  const shuffleArray = (array) => {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  };
-
-  const validateQuizData = (data) => {
-    if (!data.questions || !Array.isArray(data.questions)) {
-      return 'Invalid format: missing "questions" array';
-    }
-    for (let i = 0; i < data.questions.length; i++) {
-      const q = data.questions[i];
-      if (!q.question || !q.options || !Array.isArray(q.options) || q.correctAnswer === undefined) {
-        return `Invalid question format at index ${i}`;
-      }
-      if (q.options.length < 2) {
-        return `Question ${i} must have at least 2 options`;
-      }
-      if (q.correctAnswer < 0 || q.correctAnswer >= q.options.length) {
-        return `Invalid correctAnswer index for question ${i}`;
-      }
-    }
-    return null;
-  };
-
-  const processQuizData = (data, settings) => {
-    let processedQuestions = data.questions.map((q, idx) => ({ ...q, originalIndex: idx }));
-
-    if (settings.shuffleQuestions) {
-      processedQuestions = shuffleArray(processedQuestions);
-    }
-
-    if (settings.quizSizeMode === 'percentage' && settings.quizSize < 100) {
-      const targetCount = Math.max(1, Math.ceil((settings.quizSize / 100) * processedQuestions.length));
-      processedQuestions = processedQuestions.slice(0, targetCount);
-    } else if (settings.quizSizeMode === 'count') {
-      processedQuestions = processedQuestions.slice(0, settings.quizSize);
-    }
-
-    processedQuestions = processedQuestions.map(q => {
-      const shouldShuffle = settings.shuffleOptions && q.shuffle !== 0;
-      if (!shouldShuffle) return q;
-
-      const optionsWithIndices = q.options.map((opt, idx) => ({ option: opt, originalIndex: idx }));
-      const shuffledOptions = shuffleArray(optionsWithIndices);
-      const newCorrectIndex = shuffledOptions.findIndex(item => item.originalIndex === q.correctAnswer);
-
-      return {
-        ...q,
-        options: shuffledOptions.map(item => item.option),
-        correctAnswer: newCorrectIndex
-      };
-    });
-
-    return { ...data, questions: processedQuestions };
-  };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -134,61 +74,6 @@ const JSONUploadPage = ({
     }
     setQuizSize(value);
   };
-
-  // const startQuiz = () => {
-  //   const sizeValue = quizSize.trim();
-    
-  //   if (sizeValue === '') {
-  //     setError('Please enter a quiz size value');
-  //     return;
-  //   }
-
-  //   const parsedSize = parseInt(sizeValue);
-  //   if (isNaN(parsedSize)) {
-  //     setError('Quiz size must be a valid number');
-  //     return;
-  //   }
-
-  //   if (quizSizeMode === 'percentage') {
-  //     if (parsedSize < 10 || parsedSize > 100) {
-  //       setError('Quiz Size must be between 10% and 100%');
-  //       return;
-  //     }
-  //   } else {
-  //     if (parsedSize < 2) {
-  //       setError('Quiz must have at least 2 questions');
-  //       return;
-  //     }
-  //     if (parsedSize > uploadedFile.questionCount) {
-  //       setError(`Question count cannot exceed ${uploadedFile.questionCount} (total available questions)`);
-  //       return;
-  //     }
-  //   }
-
-  //   const currentSettings = {
-  //     shuffleQuestions,
-  //     shuffleOptions,
-  //     quizSize: parsedSize,
-  //     quizSizeMode
-  //   };
-
-  //   setActiveSettings(currentSettings);
-  //   setAnswers({});
-  //   setCurrentQuestion(0);
-  //   setError('');
-    
-  //   const reader = new FileReader();
-  //   const fileInput = document.querySelector('input[type="file"]');
-  //   if (!uploadedFile?.file) {
-  //     reader.onload = (event) => {
-  //       const data = JSON.parse(event.target.result);
-  //       const processedData = processQuizData(data, currentSettings);
-  //       setProcessedQuizData(processedData);
-  //       setView('quiz');
-  //     };
-  //     reader.readAsText(uploadedFile.file);
-  //   }
-  // };
 
   const startQuiz = () => {
     const sizeValue = quizSize.trim();
@@ -334,7 +219,7 @@ const JSONUploadPage = ({
                 </button>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-5">
               <input
                 id="quizSize"
                 type="text"
