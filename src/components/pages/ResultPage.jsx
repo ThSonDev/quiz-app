@@ -9,8 +9,7 @@ const ResultPage = ({
   activeSettings,
   setCurrentQuestion,
   setProcessedQuizData,
-  setView,
-  setOriginalQuizData
+  setView
 }) => {
   const [showRetryModal, setShowRetryModal] = useState(false);
 
@@ -97,9 +96,8 @@ const ResultPage = ({
     setView('quiz');
   };
 
+  // Return to upload page - preserves uploaded file
   const handleFinish = () => {
-    setOriginalQuizData(null);
-    setProcessedQuizData(null);
     setAnswers({});
     setCurrentQuestion(0);
     setView('upload');
@@ -137,6 +135,7 @@ const ResultPage = ({
           <button
             onClick={() => setView('review')}
             className="w-full flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all"
+            title="Review answers"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -147,6 +146,7 @@ const ResultPage = ({
           <button
             onClick={handleRetry}
             className="w-full flex items-center justify-center px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all"
+            title="Retry Quiz"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -156,6 +156,7 @@ const ResultPage = ({
           <button
             onClick={handleFinish}
             className={`w-full flex items-center justify-center px-6 py-3 ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-600 hover:bg-gray-700'} text-white rounded-lg font-medium transition-all`}
+            title="Return to Upload"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -172,15 +173,15 @@ const ResultPage = ({
             <h3 className={`text-xl font-bold ${textColor} mb-4`}>Retry Quiz</h3>
             <p className={`${mutedText} mb-6`}>Choose how you want to retry the quiz:</p>
             <div className="space-y-3">
-              <button onClick={retrySameLayout} className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all">
+              <button onClick={retrySameLayout} className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all" title="Retry previous Quiz">
                 Same Layout
                 <span className="block text-sm text-indigo-200 mt-1">Keep the same question and option order</span>
               </button>
-              <button onClick={retryNewShuffle} className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-all">
+              <button onClick={retryNewShuffle} className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-all" title="Do a new Quiz">
                 New Shuffle
                 <span className="block text-sm text-purple-200 mt-1">Randomize questions and options again</span>
               </button>
-              <button onClick={() => setShowRetryModal(false)} className={`w-full px-6 py-3 ${isDarkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'} rounded-lg font-medium transition-all`}>
+              <button onClick={() => setShowRetryModal(false)} className={`w-full px-6 py-3 ${isDarkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'} rounded-lg font-medium transition-all`} title="Return">
                 Cancel
               </button>
             </div>

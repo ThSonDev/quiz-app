@@ -53,6 +53,7 @@ const QuizPage = ({
           <button
             onClick={() => setShowExitModal(true)}
             className={`flex items-center px-4 py-2 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-600'} text-white rounded-lg font-medium hover:bg-gray-700 transition-all`}
+            title="Return to Upload"
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -115,6 +116,7 @@ const QuizPage = ({
                   ? `${isDarkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-400'} cursor-not-allowed`
                   : `${isDarkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`
               }`}
+              title="Previous question"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -130,6 +132,7 @@ const QuizPage = ({
                   ? `${isDarkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-300 text-gray-500'} cursor-not-allowed`
                   : 'bg-indigo-600 text-white hover:bg-indigo-700'
               }`}
+              title="Next question"
             >
               {currentQuestion === totalQuestions - 1 && answeredCount === totalQuestions ? 'Finish' : 'Next'}
               <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -147,10 +150,10 @@ const QuizPage = ({
             <h3 className={`text-xl font-bold ${textColor} mb-4`}>Exit Quiz?</h3>
             <p className={`${mutedText} mb-6`}>Are you sure you want to exit? Your progress will be lost.</p>
             <div className="space-y-3">
-              <button onClick={handleExit} className="w-full px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-all">
+              <button onClick={handleExit} className="w-full px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-all" title="Exit">
                 Yes, Exit Quiz
               </button>
-              <button onClick={() => setShowExitModal(false)} className={`w-full px-6 py-3 ${isDarkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'} rounded-lg font-medium transition-all`}>
+              <button onClick={() => setShowExitModal(false)} className={`w-full px-6 py-3 ${isDarkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'} rounded-lg font-medium transition-all`} title="Don't exit">
                 Cancel
               </button>
             </div>

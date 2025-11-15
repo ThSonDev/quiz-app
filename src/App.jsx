@@ -18,6 +18,9 @@ const App = () => {
   const [answers, setAnswers] = useState({});
   const [currentQuestion, setCurrentQuestion] = useState(0);
   
+  // File persistence - keeps uploaded file info across navigation
+  const [uploadedFileInfo, setUploadedFileInfo] = useState(null);
+  
   // Settings
   const [activeSettings, setActiveSettings] = useState({
     shuffleQuestions: false,
@@ -61,6 +64,8 @@ const App = () => {
           setActiveSettings={setActiveSettings}
           setAnswers={setAnswers}
           setCurrentQuestion={setCurrentQuestion}
+          uploadedFileInfo={uploadedFileInfo}
+          setUploadedFileInfo={setUploadedFileInfo}
         />
       )}
 
@@ -87,7 +92,6 @@ const App = () => {
           setCurrentQuestion={setCurrentQuestion}
           setProcessedQuizData={setProcessedQuizData}
           setView={setView}
-          setOriginalQuizData={setOriginalQuizData}
         />
       )}
 

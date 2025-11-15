@@ -8,9 +8,10 @@ const JSONUploadPage = ({
   setProcessedQuizData,
   setActiveSettings,
   setAnswers,
-  setCurrentQuestion
+  setCurrentQuestion,
+  uploadedFileInfo,
+  setUploadedFileInfo
 }) => {
-  const [uploadedFile, setUploadedFile] = useState(null);
   const [error, setError] = useState('');
   const [shuffleQuestions, setShuffleQuestions] = useState(false);
   const [shuffleOptions, setShuffleOptions] = useState(false);
@@ -34,31 +35,46 @@ const JSONUploadPage = ({
         
         if (validationError) {
           setError(validationError);
-          setUploadedFile(null);
+          setUploadedFileInfo(null);
           return;
         }
 
         if (data.questions.length < 2) {
           setError('Quiz must contain at least 2 questions');
-          setUploadedFile(null);
+          setUploadedFileInfo(null);
           return;
         }
 
-        setUploadedFile({
-          file, // <— QUAN TRỌNG: lưu cả file thật
+        // Store file info and raw data for persistence
+        setUploadedFileInfo({
+          file: file,
           name: file.name,
-          questionCount: data.questions.length
+          questionCount: data.questions.length,
+          rawData: data
         });
         setOriginalQuizData(data);
         setError('');
       } catch (err) {
         setError('Invalid JSON file format');
-        setUploadedFile(null);
+        setUploadedFileInfo(null);
       }
     };
     reader.readAsText(file);
   };
 
+  // Remove uploaded file - resets to initial state
+  const handleRemoveFile = () => {
+    setUploadedFileInfo(null);
+    setOriginalQuizData(null);
+    setError('');
+    // Reset file input
+    const fileInput = document.querySelector('input[type="file"]');
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  };
+
+  // Handle quiz size input changes
   const handleQuizSizeChange = (e) => {
     const value = e.target.value;
     if (value === '') {
@@ -75,34 +91,33 @@ const JSONUploadPage = ({
     setQuizSize(value);
   };
 
+  // Start quiz with validation
   const startQuiz = () => {
     const sizeValue = quizSize.trim();
 
-    if (sizeValue === "") {
-      setError("Please enter a quiz size value");
+    if (sizeValue === '') {
+      setError('Please enter a quiz size value');
       return;
     }
 
     const parsedSize = parseInt(sizeValue);
     if (isNaN(parsedSize)) {
-      setError("Quiz size must be a valid number");
+      setError('Quiz size must be a valid number');
       return;
     }
 
-    if (quizSizeMode === "percentage") {
+    if (quizSizeMode === 'percentage') {
       if (parsedSize < 10 || parsedSize > 100) {
-        setError("Quiz Size must be between 10% and 100%");
+        setError('Quiz Size must be between 10% and 100%');
         return;
       }
     } else {
       if (parsedSize < 2) {
-        setError("Quiz must have at least 2 questions");
+        setError('Quiz must have at least 2 questions');
         return;
       }
-      if (parsedSize > uploadedFile.questionCount) {
-        setError(
-          `Question count cannot exceed ${uploadedFile.questionCount}`
-        );
+      if (parsedSize > uploadedFileInfo.questionCount) {
+        setError(`Question count cannot exceed ${uploadedFileInfo.questionCount}`);
         return;
       }
     }
@@ -111,34 +126,19 @@ const JSONUploadPage = ({
       shuffleQuestions,
       shuffleOptions,
       quizSize: parsedSize,
-      quizSizeMode,
+      quizSizeMode
     };
 
     setActiveSettings(currentSettings);
     setAnswers({});
     setCurrentQuestion(0);
-    setError("");
+    setError('');
 
-    if (!uploadedFile?.file) {
-      setError("Please upload a valid file");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const data = JSON.parse(event.target.result);
-        const processedData = processQuizData(data, currentSettings);
-        setProcessedQuizData(processedData);
-        setView("quiz");
-      } catch (e) {
-        setError("Invalid JSON structure");
-      }
-    };
-
-    reader.readAsText(uploadedFile.file);
+    // Use stored raw data instead of re-reading file
+    const processedData = processQuizData(uploadedFileInfo.rawData, currentSettings);
+    setProcessedQuizData(processedData);
+    setView('quiz');
   };
-
 
   return (
     <div className="flex items-center justify-center min-h-screen p-4">
@@ -166,6 +166,7 @@ const JSONUploadPage = ({
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   shuffleQuestions ? 'bg-indigo-600' : 'bg-gray-400'
                 }`}
+                title="Shuffle questions"
               >
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                   shuffleQuestions ? 'translate-x-6' : 'translate-x-1'
@@ -183,6 +184,7 @@ const JSONUploadPage = ({
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   shuffleOptions ? 'bg-indigo-600' : 'bg-gray-400'
                 }`}
+                title="Shuffle options"
               >
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                   shuffleOptions ? 'translate-x-6' : 'translate-x-1'
@@ -191,21 +193,23 @@ const JSONUploadPage = ({
             </div>
           </div>
 
-          {/* Quiz Size */}
-          <div className={`p-4 ${inputBg} rounded-lg`}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex-1">
+          {/* Quiz Size - Responsive Layout */}
+          <div className={`p-4 ${inputBg} rounded-lg space-y-3`}>
+            {/* Header with mode toggle */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex-1 min-w-0">
                 <label htmlFor="quizSize" className={`font-medium ${textColor} block`}>Quiz Size</label>
-                <p className={`text-sm ${mutedText}`}>
+                <p className={`text-sm ${mutedText} break-words`}>
                   {quizSizeMode === 'percentage' ? 'Take a percentage of questions' : 'Specify exact number of questions'}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={() => setQuizSizeMode('percentage')}
                   className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                     quizSizeMode === 'percentage' ? 'bg-indigo-600 text-white' : `${isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-300 text-gray-700'}`
                   }`}
+                  title="Percentage (%)"
                 >
                   %
                 </button>
@@ -214,12 +218,15 @@ const JSONUploadPage = ({
                   className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                     quizSizeMode === 'count' ? 'bg-indigo-600 text-white' : `${isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-300 text-gray-700'}`
                   }`}
+                  title="Number (#)"
                 >
                   #
                 </button>
               </div>
             </div>
-            <div className="flex items-center gap-5">
+            
+            {/* Input with inline label - responsive flex layout */}
+            <div className="flex items-center gap-2">
               <input
                 id="quizSize"
                 type="text"
@@ -227,16 +234,16 @@ const JSONUploadPage = ({
                 value={quizSize}
                 onChange={handleQuizSizeChange}
                 placeholder={quizSizeMode === 'percentage' ? '100' : '10'}
-                className={`flex-1 px-4 py-2 border-2 ${isDarkMode ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300 text-gray-800'} rounded-lg font-semibold focus:outline-none focus:border-indigo-500`}
+                className={`flex-1 min-w-0 px-4 py-2 border-2 ${isDarkMode ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300 text-gray-800'} rounded-lg font-semibold focus:outline-none focus:border-indigo-500`}
               />
-              <span className={`${mutedText} font-medium`}>
+              <span className={`${mutedText} font-medium whitespace-nowrap flex-shrink-0`}>
                 {quizSizeMode === 'percentage' ? '%' : 'questions'}
               </span>
             </div>
           </div>
 
-          {/* File upload */}
-          {!uploadedFile ? (
+          {/* File upload or uploaded file display */}
+          {!uploadedFileInfo ? (
             <label className="block">
               <div className={`border-2 border-dashed ${isDarkMode ? 'border-indigo-500' : 'border-indigo-300'} rounded-lg p-8 text-center hover:border-indigo-500 transition-colors cursor-pointer`}>
                 <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
@@ -248,21 +255,39 @@ const JSONUploadPage = ({
               </div>
             </label>
           ) : (
-            <div className={`border-2 ${isDarkMode ? 'border-green-600 bg-green-900' : 'border-green-300 bg-green-50'} rounded-lg p-6`}>
-              <div className="flex items-start gap-4">
-                <div className={`${isDarkMode ? 'bg-green-800' : 'bg-green-100'} p-3 rounded-lg`}>
+            <div className={`relative border-2 ${isDarkMode ? 'border-green-600 bg-green-900' : 'border-green-300 bg-green-50'} rounded-lg p-6`}>
+              {/* Remove button - top right corner */}
+              <button
+                onClick={handleRemoveFile}
+                className={`absolute top-2 right-2 p-1.5 rounded-full transition-all ${
+                  isDarkMode 
+                    ? 'hover:bg-red-800 text-red-400 hover:text-red-300' 
+                    : 'hover:bg-red-100 text-red-600 hover:text-red-700'
+                }`}
+                aria-label="Remove file"
+                title="Remove file"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              <div className="flex items-start gap-4 pr-8">
+                <div className={`${isDarkMode ? 'bg-green-800' : 'bg-green-100'} p-3 rounded-lg flex-shrink-0`}>
                   <svg className={`w-8 h-8 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <div className="flex-1">
-                  <p className={`font-semibold ${textColor} mb-1`}>{uploadedFile.name}</p>
-                  <p className={`${mutedText} text-sm`}>{uploadedFile.questionCount} questions loaded</p>
+                <div className="flex-1 min-w-0">
+                  <p className={`font-semibold ${textColor} mb-1 break-words`}>{uploadedFileInfo.name}</p>
+                  <p className={`${mutedText} text-sm`}>{uploadedFileInfo.questionCount} questions loaded</p>
                 </div>
               </div>
+              
               <button
                 onClick={startQuiz}
                 className="w-full mt-4 px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+                title="Start Quiz"
               >
                 Start Quiz
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -288,15 +313,18 @@ const JSONUploadPage = ({
       "question": "Question text?",
       "options": ["A", "B", "C", "D"],
       "correctAnswer": 0,
-      "explanation": "Why A is correct (Optional)",
+      "explanation": "Why A is correct",
       "shuffle": 0
     }
   ]
 }
-
-Note: "shuffle": 0 prevents option shuffling
-for that specific question`}
+`}
           </pre>
+          <div className={`text-sm ${mutedText} font-medium mt-2 space-y-1`}>
+            <p>Note:</p>
+            <p>"explanation" and "shuffle" are optional.</p>
+            <p>"shuffle": 0 prevents option shuffling for that specific question</p>
+          </div>
         </div>
 
         <div className="mt-6 text-center">

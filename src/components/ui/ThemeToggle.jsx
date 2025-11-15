@@ -1,5 +1,3 @@
-import React, { useState, useEffect } from 'react';
-
 const ThemeToggle = ({ isDarkMode, setIsDarkMode }) => {
   return (
     <button
@@ -8,6 +6,7 @@ const ThemeToggle = ({ isDarkMode, setIsDarkMode }) => {
         isDarkMode ? 'bg-gray-800 text-yellow-400' : 'bg-white text-gray-800'
       }`}
       aria-label="Toggle theme"
+      title={isDarkMode ? "Turn to light mode" : "Turn to dark mode"}
     >
       {isDarkMode ? (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
