@@ -12,8 +12,9 @@ A modern, feature-rich web-based quiz application with customizable shuffle opti
 - **Smart shuffling** - Randomize questions and/or answer options. Override shuffle settings for specific questions
 - **Quiz Size (%)** - Choose what percentage of the total questions to include (e.g., 50% = half the quiz) or specify the exact number of questions to attempt
 - **Review mode** - Comprehensive review of all answers after completion
-- **Retry functionality** - Retake quizzes with re-shuffling
+- **Retry functionality** - Retake quizzes with same layout or re-shuffling
 - **Responsive design** - Works seamlessly on all devices
+- **Dark/light mode"" - Protects your eyes
 
 ## Tech Stack
 
@@ -65,7 +66,7 @@ Before uploading your quiz:
 - Toggle **"Shuffle Options"** to randomize answer choices
 - Both shuffle options are OFF by default
 - Set **"Quiz Size (%/#)"** to choose how many questions to take: 
-  - Default: `100` (use all questions)  
+  - Default: `100` % (use all questions)  
   - Range: `10–100` (for percentage mode)
   - Or the exact number of questions you want to answer (number mode)
 
@@ -83,7 +84,7 @@ After completing all questions:
 - See your score (out of 10)
 - View correct/incorrect counts
 - **Review** - See all questions with correct answers
-- **Retry** - Take the quiz again (with re-shuffling if enabled)
+- **Retry** - Take the quiz again
 - **Finish** - Upload a new quiz
 
 ### Per-Question Override
@@ -110,4 +111,5 @@ Feel free to open issues or submit pull requests for improvements!
 ## License
 
 MIT License - feel free to use this project for personal or commercial purposes.
+
 
