@@ -14,7 +14,7 @@ A modern, feature-rich web-based quiz application with customizable shuffle opti
 - **Review mode** - Comprehensive review of all answers after completion
 - **Retry functionality** - Retake quizzes with same layout or re-shuffling
 - **Responsive design** - Works seamlessly on all devices
-- **Dark/light mode"" - Protects your eyes
+- **Dark/light mode** - Protects your eyes
 
 ## Tech Stack
 
@@ -111,5 +111,6 @@ Feel free to open issues or submit pull requests for improvements!
 ## License
 
 MIT License - feel free to use this project for personal or commercial purposes.
+
 
 
