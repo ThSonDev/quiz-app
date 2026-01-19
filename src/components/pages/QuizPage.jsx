@@ -18,13 +18,36 @@ const QuizPage = ({
   const totalQuestions = quizData.questions.length;
   const progressPercent = (answeredCount / totalQuestions) * 100;
 
+  const [multiSelection, setMultiSelection] = useState([]);
+  const isMultiChoice = Array.isArray(question.correctAnswer) && question.correctAnswer.length > 1;
+
   const cardBg = isDarkMode ? 'bg-gray-800' : 'bg-white';
   const textColor = isDarkMode ? 'text-gray-200' : 'text-gray-800';
   const mutedText = isDarkMode ? 'text-gray-400' : 'text-gray-600';
 
+  useEffect(() => {
+    setMultiSelection([]);
+  }, [currentQuestion]);
+
   const handleAnswerSelect = (optionIndex) => {
     if (isAnswered) return;
-    setAnswers({ ...answers, [currentQuestion]: optionIndex });
+
+    if (isMultiChoice) {
+      setMultiSelection(prev => {
+        if (prev.includes(optionIndex)) {
+          return prev.filter(i => i !== optionIndex);
+        }
+        return [...prev, optionIndex];
+      });
+    } else {
+      setAnswers({ ...answers, [currentQuestion]: optionIndex });
+    }
+  };
+
+  const handleConfirmMulti = () => {
+    // Sort indices to ensure consistent comparison later
+    const sortedSelection = [...multiSelection].sort((a, b) => a - b);
+    setAnswers({ ...answers, [currentQuestion]: sortedSelection });
   };
 
   const goToNext = () => {
@@ -73,28 +96,95 @@ const QuizPage = ({
         </div>
 
         <div className={`${cardBg} rounded-xl shadow-lg p-8`}>
+          {isMultiChoice && (
+            <p className={`text-sm font-bold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
+              Multiple Choices
+            </p>
+          )}
           <h2 className={`text-2xl font-bold ${textColor} mb-6`}>{question.question}</h2>
 
           <div className="space-y-3 mb-6">
             {question.options.map((option, idx) => {
-              let buttonClass = `w-full text-left p-4 rounded-lg border-2 transition-all font-medium `;
-              
+              // 1. Determine State
+              const isSelected = isAnswered 
+                              ? (Array.isArray(userAnswer) ? userAnswer.includes(idx) : userAnswer === idx)
+                              : (isMultiChoice ? multiSelection.includes(idx) : false);
+
+              const isCorrectOption = Array.isArray(question.correctAnswer) 
+                    ? question.correctAnswer.includes(idx) 
+                    : question.correctAnswer === idx;
+
+              // 2. Base Classes
+              let buttonClass = `w-full text-left p-4 rounded-lg border-2 transition-all font-medium relative overflow-hidden `;
+
+              // 3. Conditional Styling
               if (isAnswered) {
-                if (idx === question.correctAnswer) {
-                  buttonClass += isDarkMode ? 'bg-green-900 border-green-600 text-green-200' : 'bg-green-100 border-green-500 text-green-800';
-                } else if (idx === userAnswer) {
-                  buttonClass += isDarkMode ? 'bg-red-900 border-red-600 text-red-200' : 'bg-red-100 border-red-500 text-red-800';
+                if (isSelected && isCorrectOption) {
+                  // Case: User Selected CORRECT Answer
+                  buttonClass += isDarkMode 
+                    ? 'bg-green-900/50 border-green-500 text-green-100' 
+                    : 'bg-green-100 border-green-500 text-green-900';
+                } else if (isSelected && !isCorrectOption) {
+                  // Case: User Selected WRONG Answer
+                  buttonClass += isDarkMode 
+                    ? 'bg-red-900/50 border-red-500 text-red-100' 
+                    : 'bg-red-100 border-red-500 text-red-900';
+                } else if (!isSelected && isCorrectOption) {
+                  // Case: Correct Answer but UNCHOSEN
+                  buttonClass += isDarkMode 
+                    ? 'bg-green-900/30 border-green-500 border-dashed text-green-200' 
+                    : 'bg-green-50 border-green-500 border-dashed text-green-800';
                 } else {
-                  buttonClass += isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-400' : 'bg-gray-50 border-gray-300 text-gray-600';
+                  // Case: Wrong and Unselected (Neutral)
+                  buttonClass += isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-500 opacity-50' : 'bg-gray-50 border-gray-200 text-gray-400 opacity-50';
                 }
               } else {
-                buttonClass += isDarkMode ? 'border-gray-600 hover:border-indigo-500 hover:bg-gray-700 text-gray-200 cursor-pointer' : 'border-gray-300 hover:border-indigo-500 hover:bg-indigo-50 text-gray-800 cursor-pointer';
+                // Interactive State
+                if (isSelected) {
+                   // MODIFIED: Blue Glow for selected state before confirming
+                   buttonClass += isDarkMode 
+                     ? 'border-blue-400 bg-blue-900/40 text-blue-100 ring-2 ring-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.5)]' 
+                     : 'border-blue-500 bg-blue-50 text-blue-900 ring-2 ring-blue-400/50 shadow-md';
+                } else {
+                   buttonClass += isDarkMode 
+                     ? 'border-gray-600 hover:border-gray-400 hover:bg-gray-700 text-gray-200' 
+                     : 'border-gray-300 hover:border-blue-300 hover:bg-gray-50 text-gray-800';
+                }
+                buttonClass += ' cursor-pointer';
               }
 
               return (
                 <button key={idx} onClick={() => handleAnswerSelect(idx)} disabled={isAnswered} className={buttonClass}>
-                  <span className="font-bold mr-2">{String.fromCharCode(65 + idx)}.</span>
-                  {option}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <span className="font-bold mr-3 opacity-70">{String.fromCharCode(65 + idx)}.</span>
+                      <span>{option}</span>
+                    </div>
+                    
+                    {/* MODIFIED: Status Icons and Text for Result State */}
+                    {isAnswered && (
+                      <div className="flex items-center text-sm font-bold ml-4 shrink-0">
+                         {isSelected && isCorrectOption && (
+                           <div className="flex items-center text-green-600 dark:text-green-400">
+                             <span className="mr-1">Your answer is correct</span>
+                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                           </div>
+                         )}
+                         {isSelected && !isCorrectOption && (
+                           <div className="flex items-center text-red-600 dark:text-red-400">
+                             <span className="mr-1">Your answer</span>
+                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                           </div>
+                         )}
+                         {!isSelected && isCorrectOption && (
+                           <div className="flex items-center text-red-500 dark:text-red-400">
+                              <span className="mr-1">Unchosen</span>
+                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                           </div>
+                         )}
+                      </div>
+                    )}
+                  </div>
                 </button>
               );
             })}
@@ -124,21 +214,34 @@ const QuizPage = ({
               Previous
             </button>
 
-            <button
-              onClick={goToNext}
-              disabled={!isAnswered}
-              className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all ${
-                !isAnswered
-                  ? `${isDarkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-300 text-gray-500'} cursor-not-allowed`
-                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
-              }`}
-              title="Next question"
-            >
-              {currentQuestion === totalQuestions - 1 && answeredCount === totalQuestions ? 'Finish' : 'Next'}
-              <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </button>
+            {isMultiChoice && !isAnswered ? (
+               <button
+                 onClick={handleConfirmMulti}
+                 disabled={multiSelection.length === 0}
+                 className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all ${
+                   multiSelection.length === 0
+                   ? `${isDarkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-300 text-gray-500'} cursor-not-allowed`
+                   : 'bg-green-600 text-white hover:bg-green-700'
+                 }`}
+               >
+                 Confirm
+               </button>
+            ) : (
+              <button
+                onClick={goToNext}
+                disabled={!isAnswered}
+                className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all ${
+                  !isAnswered
+                    ? `${isDarkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-300 text-gray-500'} cursor-not-allowed`
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
+              >
+                {currentQuestion === totalQuestions - 1 && answeredCount === totalQuestions ? 'Finish' : 'Next'}
+                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
       </div>

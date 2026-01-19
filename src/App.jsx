@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import JSONUploadPage from './components/pages/JSONUploadPage';
 import QuizPage from './components/pages/QuizPage';
 import ResultPage from './components/pages/ResultPage';

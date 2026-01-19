@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { shuffleArray, validateQuizData, processQuizData } from "../../utils/upload.js";
+import { shuffleArray, validateQuizData, processQuizData } from "../../utils/utils.js";
 
 const JSONUploadPage = ({
   isDarkMode,
@@ -246,7 +246,7 @@ const JSONUploadPage = ({
           {!uploadedFileInfo ? (
             <label className="block">
               <div className={`border-2 border-dashed ${isDarkMode ? 'border-indigo-500' : 'border-indigo-300'} rounded-lg p-8 text-center hover:border-indigo-500 transition-colors cursor-pointer`}>
-                <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
+                <input type="file" accept=".json,.txt" onChange={handleFileUpload} className="hidden" />
                 <svg className={`w-12 h-12 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-400'} mx-auto mb-2`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>

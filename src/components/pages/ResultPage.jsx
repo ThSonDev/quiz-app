@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { processQuizData, calculateQuestionScore } from '../../utils/utils';
 
 const ResultPage = ({
   isDarkMode,
@@ -16,60 +17,46 @@ const ResultPage = ({
   const cardBg = isDarkMode ? 'bg-gray-800' : 'bg-white';
   const textColor = isDarkMode ? 'text-gray-200' : 'text-gray-800';
   const mutedText = isDarkMode ? 'text-gray-400' : 'text-gray-600';
+  const hasMultiChoice = quizData.questions.some(q => Array.isArray(q.correctAnswer) && q.correctAnswer.length > 1);
 
   const calculateResults = () => {
-    let correct = 0;
+    let totalPoints = 0;
+    let correctCount = 0;
+    let incorrectCount = 0;
+    let partialCount = 0;
+    // Note: Questions with 0 < Score < 1 are "partial" and contribute to totalPoints but are not strictly "Correct" or "Incorrect" in the binary counts.
+
     quizData.questions.forEach((q, idx) => {
-      if (answers[idx] === q.correctAnswer) correct++;
+      const userAns = answers[idx];
+      const qScore = calculateQuestionScore(q, userAns);
+      
+      totalPoints += qScore;
+
+      if (qScore === 1) {
+        correctCount++;
+      } else if (qScore === 0) {
+        incorrectCount++;
+      } else {
+        partialCount++;
+      }
     });
-    const incorrect = quizData.questions.length - correct;
-    const score = (correct / quizData.questions.length) * 10;
-    return { correct, incorrect, score: score.toFixed(2) };
+
+    // Final Score Calculation (out of 10)
+    // Formula: (TotalPoints / TotalQuestions) * 10
+    const totalQuestions = quizData.questions.length;
+    const finalScore = (totalPoints / totalQuestions) * 10;
+
+    return { 
+        correctCount,
+        partialCount, 
+        incorrectCount, 
+        totalQuestions,
+        score: finalScore.toFixed(2) // Display standard 2 decimals for the big score
+    };
   };
 
-  const { correct, incorrect, score } = calculateResults();
+  const { correctCount, partialCount, incorrectCount, totalQuestions, score } = calculateResults();
   const showPercentage = activeSettings.quizSizeMode === 'percentage' && activeSettings.quizSize < 100;
-
-  const shuffleArray = (array) => {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  };
-
-  const processQuizData = (data, settings) => {
-    let processedQuestions = data.questions.map((q, idx) => ({ ...q, originalIndex: idx }));
-
-    if (settings.shuffleQuestions) {
-      processedQuestions = shuffleArray(processedQuestions);
-    }
-
-    if (settings.quizSizeMode === 'percentage' && settings.quizSize < 100) {
-      const targetCount = Math.max(1, Math.ceil((settings.quizSize / 100) * processedQuestions.length));
-      processedQuestions = processedQuestions.slice(0, targetCount);
-    } else if (settings.quizSizeMode === 'count') {
-      processedQuestions = processedQuestions.slice(0, settings.quizSize);
-    }
-
-    processedQuestions = processedQuestions.map(q => {
-      const shouldShuffle = settings.shuffleOptions && q.shuffle !== 0;
-      if (!shouldShuffle) return q;
-
-      const optionsWithIndices = q.options.map((opt, idx) => ({ option: opt, originalIndex: idx }));
-      const shuffledOptions = shuffleArray(optionsWithIndices);
-      const newCorrectIndex = shuffledOptions.findIndex(item => item.originalIndex === q.correctAnswer);
-
-      return {
-        ...q,
-        options: shuffledOptions.map(item => item.option),
-        correctAnswer: newCorrectIndex
-      };
-    });
-
-    return { ...data, questions: processedQuestions };
-  };
 
   const handleRetry = () => {
     const hasShuffleActive = activeSettings.shuffleQuestions || activeSettings.shuffleOptions;
@@ -119,12 +106,27 @@ const ResultPage = ({
         <div className="space-y-4 mb-8">
           <div className={`flex justify-between items-center p-4 ${isDarkMode ? 'bg-green-900' : 'bg-green-50'} rounded-lg`}>
             <span className={`font-medium ${mutedText}`}>Correct Answers</span>
-            <span className={`text-2xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>{correct}</span>
+            <span className={`text-2xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+              {correctCount} <span className={`text-lg font-normal ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>/{totalQuestions}</span>
+            </span>
           </div>
+
+          {hasMultiChoice && (
+            <div className={`flex justify-between items-center p-4 ${isDarkMode ? 'bg-yellow-900' : 'bg-yellow-50'} rounded-lg`}>
+              <span className={`font-medium ${mutedText}`}>Partial Correct Answers</span>
+              <span className={`text-2xl font-bold ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
+                {partialCount} <span className={`text-lg font-normal ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>/{totalQuestions}</span>
+              </span>
+            </div>
+          )}
+
           <div className={`flex justify-between items-center p-4 ${isDarkMode ? 'bg-red-900' : 'bg-red-50'} rounded-lg`}>
             <span className={`font-medium ${mutedText}`}>Incorrect Answers</span>
-            <span className={`text-2xl font-bold ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>{incorrect}</span>
+            <span className={`text-2xl font-bold ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+              {incorrectCount} <span className={`text-lg font-normal ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>/{totalQuestions}</span>
+            </span>
           </div>
+
           <div className={`flex justify-between items-center p-4 ${isDarkMode ? 'bg-indigo-900' : 'bg-indigo-50'} rounded-lg`}>
             <span className={`font-medium ${mutedText}`}>Final Score (out of 10)</span>
             <span className={`text-2xl font-bold ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>{score}</span>
