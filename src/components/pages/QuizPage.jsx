@@ -166,7 +166,7 @@ const QuizPage = ({
                       <div className="flex items-center text-sm font-bold ml-4 shrink-0">
                          {isSelected && isCorrectOption && (
                            <div className="flex items-center text-green-600 dark:text-green-400">
-                             <span className="mr-1">Your answer is correct</span>
+                             <span className="mr-1">Correct</span>
                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                            </div>
                          )}
