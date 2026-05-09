@@ -26,6 +26,7 @@ dist-ssr
 package-lock.json
 test.txt
 test.jsx
+temp/
 
 .claude/
 CLAUDE.md

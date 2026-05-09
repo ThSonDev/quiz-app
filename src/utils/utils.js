@@ -101,6 +101,27 @@ export function processQuizData(data, settings) {
     return { ...data, questions: processedQuestions };
 }
 
+// Triggers a browser download of the quiz JSON. Content is identical for
+// both extensions; only the filename changes.
+export function downloadQuizFile(quizData, rawName, extension) {
+    const trimmed = (rawName || '').trim();
+    // Strip filesystem-forbidden characters; keep spaces/dots so user-typed
+    // names look natural after download.
+    const safeName = trimmed.replace(/[/\\:*?"<>|]/g, '_') || 'quiz';
+    const json = JSON.stringify(quizData, null, 2);
+    const mime = extension === 'json' ? 'application/json' : 'text/plain';
+    const blob = new Blob([json], { type: mime });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${safeName}.${extension}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
 export function calculateQuestionScore(question, userAnswer) {
     if (userAnswer === undefined || userAnswer === null) return 0;
 

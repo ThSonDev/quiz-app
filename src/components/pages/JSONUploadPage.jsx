@@ -150,7 +150,7 @@ const JSONUploadPage = ({
             </svg>
           </div>
           <h1 className={`text-3xl font-bold ${textColor} mb-2`}>Quiz Application</h1>
-          <p className={mutedText}>Upload a JSON file to start your quiz</p>
+          <p className={mutedText}>Upload a JSON or TXT file to start your quiz</p>
         </div>
 
         <div className="space-y-4">
@@ -250,8 +250,9 @@ const JSONUploadPage = ({
                 <svg className={`w-12 h-12 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-400'} mx-auto mb-2`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
-                <p className={`${textColor} font-medium`}>Click to upload JSON file</p>
+                <p className={`${textColor} font-medium`}>Click to upload JSON or TXT file</p>
                 <p className={`${mutedText} text-sm mt-1`}>or drag and drop</p>
+                <p className={`${mutedText} text-xs mt-2`}>Supported formats: .json, .txt</p>
               </div>
             </label>
           ) : (
@@ -322,9 +323,22 @@ const JSONUploadPage = ({
           </pre>
           <div className={`text-sm ${mutedText} font-medium mt-2 space-y-1`}>
             <p>Note:</p>
+            <p>Both .json and .txt are accepted; the file must contain valid quiz JSON.</p>
             <p>"explanation" and "shuffle" are optional.</p>
-            <p>"shuffle": 0 prevents option shuffling for that specific question</p>
+            <p>"shuffle": 0 prevents option shuffling for that specific question.</p>
+            <p>"correctAnswer" can be a number (single choice) or an array of indices (multiple choice).</p>
           </div>
+        </div>
+
+        <div className={`mt-6 p-4 ${inputBg} rounded-lg`}>
+          <p className={`text-sm ${mutedText} mb-3 text-center`}>Don't have a quiz file yet?</p>
+          <button
+            onClick={() => setView('create')}
+            className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-all"
+            title="Create your own quiz"
+          >
+            Create Your Own Quiz
+          </button>
         </div>
 
         <div className="mt-6 text-center">

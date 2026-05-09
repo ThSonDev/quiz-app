@@ -8,7 +8,8 @@ A modern, feature-rich web-based quiz application with customizable shuffle opti
 
 ## Features
 
-- **JSON-based quizzes** - Upload your own quiz data
+- **JSON-based quizzes** - Upload your own quiz data (`.json` or `.txt`)
+- **Built-in Quiz Creator** - Build a quiz in the browser and download it as `.json` or `.txt`
 - **Single & multiple choice** - Mix both types in the same quiz; multi-choice answers are scored with partial credit (F1)
 - **Smart shuffling** - Randomize questions and/or answer options. Override shuffle settings for specific questions
 - **Quiz Size (%)** - Choose what percentage of the total questions to include (e.g., 50% = half the quiz) or specify the exact number of questions to attempt
@@ -71,9 +72,17 @@ quiz-app/
 
 ## How to Use
 
-### 1. Prepare Your Quiz JSON
+### 1. Prepare Your Quiz
 
-Create a JSON file with the following structure:
+You have two options:
+
+**Option A — Use the built-in Quiz Creator** (no JSON required)
+
+On the upload page, click **Create Your Own Quiz** to open the in-browser editor. Fill in your questions and download the result as a `.json` or `.txt` file. See the [Quiz Creator](#quiz-creator) section below.
+
+**Option B — Author the JSON yourself**
+
+Create a `.json` (or `.txt`) file with the following structure:
 
 ```json
 {
@@ -118,11 +127,13 @@ Before uploading your quiz:
 
 ### 3. Upload and Start
 
-1. Click the upload area or drag-and-drop your JSON file
-2. The app validates your file and show the total number of questions
-4. Click Start quiz to begin
-5. Answer questions one at a time
-6. Navigate with Previous/Next buttons
+1. Click the upload area or drag-and-drop your `.json` or `.txt` file
+2. The app validates your file and shows the total number of questions
+3. Click Start quiz to begin
+4. Answer questions one at a time
+5. Navigate with Previous/Next buttons
+
+> Both `.json` and `.txt` are accepted. Either way the file must contain valid quiz JSON; only the extension differs.
 
 ### 4. View Results
 
@@ -171,6 +182,21 @@ How it works:
 }
 ```
 In this example, options won't shuffle even if "Shuffle Options" is ON, preventing "All of the above" from appearing in the middle.
+
+## Quiz Creator
+
+If you'd rather not write JSON by hand, the upload page has a **Create Your Own Quiz** button that opens an in-browser editor.
+
+What you can do:
+- Add and remove questions
+- Toggle each question between **Single Choice** and **Multiple Choice**
+- Add and remove options (minimum 2 per question)
+- Mark the correct answer (radio for single, checkboxes for multi)
+- Add an optional explanation per question
+- Tick "Never shuffle options for this question" to emit `"shuffle": 0`
+- Pick a file name and download as **`.json`** or **`.txt`**
+
+The downloaded file matches the same JSON schema described above, so you can immediately upload it back to take the quiz. Both extensions contain identical content; pick whichever your tooling prefers.
 
 ## Contributing
 

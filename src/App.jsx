@@ -3,11 +3,12 @@ import JSONUploadPage from './components/pages/JSONUploadPage';
 import QuizPage from './components/pages/QuizPage';
 import ResultPage from './components/pages/ResultPage';
 import ReviewPage from './components/pages/ReviewPage';
+import QuizCreatorPage from './components/pages/QuizCreatorPage';
 import ThemeToggle from './components/ui/ThemeToggle';
 
 const App = () => {
   // View management
-  const [view, setView] = useState('upload'); // upload, quiz, results, review
+  const [view, setView] = useState('upload'); // upload, quiz, results, review, create
   
   // Theme management
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -100,6 +101,13 @@ const App = () => {
           isDarkMode={isDarkMode}
           quizData={processedQuizData}
           answers={answers}
+          setView={setView}
+        />
+      )}
+
+      {view === 'create' && (
+        <QuizCreatorPage
+          isDarkMode={isDarkMode}
           setView={setView}
         />
       )}
