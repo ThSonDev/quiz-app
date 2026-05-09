@@ -9,6 +9,7 @@ A modern, feature-rich web-based quiz application with customizable shuffle opti
 ## Features
 
 - **JSON-based quizzes** - Upload your own quiz data
+- **Single & multiple choice** - Mix both types in the same quiz; multi-choice answers are scored with partial credit (F1)
 - **Smart shuffling** - Randomize questions and/or answer options. Override shuffle settings for specific questions
 - **Quiz Size (%)** - Choose what percentage of the total questions to include (e.g., 50% = half the quiz) or specify the exact number of questions to attempt
 - **Review mode** - Comprehensive review of all answers after completion
@@ -22,6 +23,51 @@ A modern, feature-rich web-based quiz application with customizable shuffle opti
 - **JavaScript (ES6+)** - Core logic
 - **Tailwind CSS** - Styling
 - **Lucide React** - Icons
+- **Vite** - Build tool / dev server
+
+## Installation
+
+Requires Node.js 18+ and npm.
+
+```bash
+# Clone the repository
+git clone https://github.com/ThSonDev/quiz-app.git
+cd quiz-app
+
+# Install dependencies
+npm install
+
+# Start the dev server (http://localhost:5173 by default)
+npm run dev
+
+# Production build
+npm run build
+
+# Preview the production build
+npm run preview
+```
+
+## Project Structure
+
+```
+quiz-app/
+├── src/
+│   ├── App.jsx                    # Top-level state + page routing
+│   ├── main.jsx                   # React entry point
+│   ├── components/
+│   │   ├── pages/
+│   │   │   ├── JSONUploadPage.jsx # Upload + shuffle/size settings
+│   │   │   ├── QuizPage.jsx       # Question runner
+│   │   │   ├── ResultPage.jsx     # Score summary + retry
+│   │   │   └── ReviewPage.jsx     # Per-question review
+│   │   └── ui/
+│   │       └── ThemeToggle.jsx    # Dark/light toggle
+│   └── utils/
+│       └── utils.js               # Shuffle, validation, scoring
+├── index.html
+├── tailwind.config.js
+└── vite.config.js
+```
 
 ## How to Use
 
@@ -55,7 +101,7 @@ Create a JSON file with the following structure:
 |-------|------|----------|-------------|
 | `question` | string | ✅ Yes | The question text |
 | `options` | array | ✅ Yes | Array of answer choices (minimum 2) |
-| `correctAnswer` | number | ✅ Yes | Index of the correct answer (0-based) |
+| `correctAnswer` | number \| number[] | ✅ Yes | Index of the correct answer (0-based). Use an array of indices for **multiple choice** questions |
 | `explanation` | string | ❌ No | Explanation shown after answering |
 | `shuffle` | number | ❌ No | Set to `0` to prevent option shuffling for this question |
 
@@ -86,6 +132,28 @@ After completing all questions:
 - **Review** - See all questions with correct answers
 - **Retry** - Take the quiz again
 - **Finish** - Upload a new quiz
+
+### Multiple Choice Questions
+
+To create a multiple-choice question (more than one correct answer), set `correctAnswer` to an **array** of indices:
+
+```json
+{
+  "question": "Which of these are JavaScript runtimes?",
+  "options": ["Node.js", "Django", "Deno", "Rails", "Bun"],
+  "correctAnswer": [0, 2, 4],
+  "explanation": "Node.js, Deno, and Bun are JavaScript runtimes."
+}
+```
+
+How it works:
+- A question is treated as multi-choice when `correctAnswer` is an array with **2 or more** indices. A single-element array still behaves as single choice.
+- The UI shows a "Multiple Choices" label and a **Confirm** button — pick any number of options, then confirm to submit.
+- Scoring uses an **F1 score** (precision/recall) so partial credit is awarded:
+  - All correct + nothing extra → full point (Correct)
+  - Empty selection or all wrong → 0 points (Incorrect)
+  - Anything in between → partial points (shown as "Partial Correct" on the result page)
+- Final score is normalized to a value out of 10: `(sum of per-question scores / total questions) × 10`.
 
 ### Per-Question Override
 - Add `"shuffle": 0` to any question to prevent its options from shuffling
