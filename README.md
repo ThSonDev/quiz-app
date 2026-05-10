@@ -53,18 +53,29 @@ npm run preview
 ```
 quiz-app/
 ├── src/
-│   ├── App.jsx                    # Top-level state + page routing
-│   ├── main.jsx                   # React entry point
+│   ├── App.jsx                       # Top-level state + page routing
+│   ├── main.jsx                      # React entry, wraps app in ThemeProvider
+│   ├── contexts/
+│   │   ├── ThemeContext.js           # createContext export
+│   │   ├── ThemeProvider.jsx         # Owns isDarkMode + derived class strings
+│   │   └── useTheme.js               # Hook used by every component
 │   ├── components/
 │   │   ├── pages/
-│   │   │   ├── JSONUploadPage.jsx # Upload + shuffle/size settings
-│   │   │   ├── QuizPage.jsx       # Question runner
-│   │   │   ├── ResultPage.jsx     # Score summary + retry
-│   │   │   └── ReviewPage.jsx     # Per-question review
+│   │   │   ├── JSONUploadPage.jsx    # Upload + shuffle/size settings
+│   │   │   ├── QuizPage.jsx          # Question runner
+│   │   │   ├── ResultPage.jsx        # Score summary + retry
+│   │   │   ├── ReviewPage.jsx        # Per-question review
+│   │   │   └── QuizCreatorPage.jsx   # In-browser quiz editor
 │   │   └── ui/
-│   │       └── ThemeToggle.jsx    # Dark/light toggle
+│   │       ├── ThemeToggle.jsx       # Dark/light toggle
+│   │       ├── Modal.jsx             # Generic centered confirm modal
+│   │       ├── AnswerOption.jsx      # Answer button used by QuizPage
+│   │       ├── QuizProgressBar.jsx   # Progress card for QuizPage
+│   │       ├── Explanation.jsx       # Shared explanation panel
+│   │       ├── QuestionEditor.jsx    # One question card in the creator
+│   │       └── OptionEditor.jsx      # One option row in the creator
 │   └── utils/
-│       └── utils.js               # Shuffle, validation, scoring
+│       └── utils.js                  # Shuffle, validation, scoring, download
 ├── index.html
 ├── tailwind.config.js
 └── vite.config.js
