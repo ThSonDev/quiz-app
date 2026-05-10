@@ -1,4 +1,8 @@
-const ThemeToggle = ({ isDarkMode, setIsDarkMode }) => {
+import { useTheme } from '../../contexts/useTheme';
+
+const ThemeToggle = () => {
+  const { isDarkMode, setIsDarkMode } = useTheme();
+
   return (
     <button
       onClick={() => setIsDarkMode(!isDarkMode)}
@@ -6,7 +10,7 @@ const ThemeToggle = ({ isDarkMode, setIsDarkMode }) => {
         isDarkMode ? 'bg-gray-800 text-yellow-400' : 'bg-white text-gray-800'
       }`}
       aria-label="Toggle theme"
-      title={isDarkMode ? "Turn to light mode" : "Turn to dark mode"}
+      title={isDarkMode ? 'Turn to light mode' : 'Turn to dark mode'}
     >
       {isDarkMode ? (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

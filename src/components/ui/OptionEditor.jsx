@@ -1,3 +1,5 @@
+import { useTheme } from '../../contexts/useTheme';
+
 const OptionEditor = ({
   option,
   index,
@@ -7,25 +9,22 @@ const OptionEditor = ({
   onRemove,
   onSelectSingle,
   canRemove,
-  isDarkMode,
 }) => {
+  const { isDarkMode, classes } = useTheme();
+
   const inputBg = isDarkMode
     ? 'bg-transparent border-gray-600 text-white placeholder-gray-500'
     : 'bg-transparent border-gray-300 text-gray-800 placeholder-gray-400';
-  const mutedText = isDarkMode ? 'text-gray-400' : 'text-gray-600';
 
-  // Single choice uses a radio (one selection per question), multi uses a checkbox.
+  // Single choice uses a radio (one selection per question), multi uses a
+  // checkbox. The shared name attribute groups radios per question.
   const inputType = type === 'single' ? 'radio' : 'checkbox';
 
   const handleCorrectToggle = () => {
-    if (type === 'single') {
-      onSelectSingle();
-    } else {
-      onChange({ ...option, isCorrect: !option.isCorrect });
-    }
+    if (type === 'single') onSelectSingle();
+    else onChange({ ...option, isCorrect: !option.isCorrect });
   };
 
-  const containerBase = 'flex items-center gap-3 p-3 rounded-lg border-2 transition-colors';
   const containerActive = isDarkMode
     ? 'bg-green-900/30 border-green-600'
     : 'bg-green-50 border-green-400';
@@ -34,7 +33,9 @@ const OptionEditor = ({
     : 'bg-white border-gray-300';
 
   return (
-    <div className={`${containerBase} ${option.isCorrect ? containerActive : containerInactive}`}>
+    <div className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-colors ${
+      option.isCorrect ? containerActive : containerInactive
+    }`}>
       <input
         type={inputType}
         name={`question-${questionIndex}-correct`}
@@ -44,7 +45,7 @@ const OptionEditor = ({
         aria-label={option.isCorrect ? 'Marked as correct' : 'Mark as correct'}
       />
 
-      <span className={`font-bold ${mutedText} flex-shrink-0 w-6`}>
+      <span className={`font-bold ${classes.mutedText} flex-shrink-0 w-6`}>
         {String.fromCharCode(65 + index)}.
       </span>
 

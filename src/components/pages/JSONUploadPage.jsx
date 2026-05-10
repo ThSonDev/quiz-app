@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { shuffleArray, validateQuizData, processQuizData } from "../../utils/utils.js";
+import { useState } from 'react';
+import { validateQuizData, processQuizData } from '../../utils/utils.js';
+import { useTheme } from '../../contexts/useTheme';
 
 const JSONUploadPage = ({
-  isDarkMode,
   setView,
   setOriginalQuizData,
   setProcessedQuizData,
@@ -10,18 +10,14 @@ const JSONUploadPage = ({
   setAnswers,
   setCurrentQuestion,
   uploadedFileInfo,
-  setUploadedFileInfo
+  setUploadedFileInfo,
 }) => {
+  const { isDarkMode, classes } = useTheme();
   const [error, setError] = useState('');
   const [shuffleQuestions, setShuffleQuestions] = useState(false);
   const [shuffleOptions, setShuffleOptions] = useState(false);
   const [quizSize, setQuizSize] = useState('100');
   const [quizSizeMode, setQuizSizeMode] = useState('percentage');
-
-  const cardBg = isDarkMode ? 'bg-gray-800' : 'bg-white';
-  const inputBg = isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-300';
-  const textColor = isDarkMode ? 'text-gray-200' : 'text-gray-800';
-  const mutedText = isDarkMode ? 'text-gray-400' : 'text-gray-600';
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -32,7 +28,7 @@ const JSONUploadPage = ({
       try {
         const data = JSON.parse(event.target.result);
         const validationError = validateQuizData(data);
-        
+
         if (validationError) {
           setError(validationError);
           setUploadedFileInfo(null);
@@ -45,16 +41,15 @@ const JSONUploadPage = ({
           return;
         }
 
-        // Store file info and raw data for persistence
         setUploadedFileInfo({
           file: file,
           name: file.name,
           questionCount: data.questions.length,
-          rawData: data
+          rawData: data,
         });
         setOriginalQuizData(data);
         setError('');
-      } catch (err) {
+      } catch {
         setError('Invalid JSON file format');
         setUploadedFileInfo(null);
       }
@@ -62,19 +57,14 @@ const JSONUploadPage = ({
     reader.readAsText(file);
   };
 
-  // Remove uploaded file - resets to initial state
   const handleRemoveFile = () => {
     setUploadedFileInfo(null);
     setOriginalQuizData(null);
     setError('');
-    // Reset file input
     const fileInput = document.querySelector('input[type="file"]');
-    if (fileInput) {
-      fileInput.value = '';
-    }
+    if (fileInput) fileInput.value = '';
   };
 
-  // Handle quiz size input changes
   const handleQuizSizeChange = (e) => {
     const value = e.target.value;
     if (value === '') {
@@ -82,7 +72,7 @@ const JSONUploadPage = ({
       return;
     }
     if (!/^\d+$/.test(value)) return;
-    
+
     const numValue = parseInt(value);
     if (quizSizeMode === 'percentage' && numValue > 100) {
       setQuizSize('100');
@@ -91,7 +81,6 @@ const JSONUploadPage = ({
     setQuizSize(value);
   };
 
-  // Start quiz with validation
   const startQuiz = () => {
     const sizeValue = quizSize.trim();
 
@@ -122,19 +111,13 @@ const JSONUploadPage = ({
       }
     }
 
-    const currentSettings = {
-      shuffleQuestions,
-      shuffleOptions,
-      quizSize: parsedSize,
-      quizSizeMode
-    };
+    const currentSettings = { shuffleQuestions, shuffleOptions, quizSize: parsedSize, quizSizeMode };
 
     setActiveSettings(currentSettings);
     setAnswers({});
     setCurrentQuestion(0);
     setError('');
 
-    // Use stored raw data instead of re-reading file
     const processedData = processQuizData(uploadedFileInfo.rawData, currentSettings);
     setProcessedQuizData(processedData);
     setView('quiz');
@@ -142,24 +125,23 @@ const JSONUploadPage = ({
 
   return (
     <div className="flex items-center justify-center min-h-screen p-4">
-      <div className={`${cardBg} rounded-2xl shadow-2xl p-8 max-w-md w-full transition-colors duration-300`}>
+      <div className={`${classes.cardBg} rounded-2xl shadow-2xl p-8 max-w-md w-full transition-colors duration-300`}>
         <div className="text-center mb-8">
           <div className={`${isDarkMode ? 'bg-indigo-900' : 'bg-indigo-100'} w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4`}>
             <svg className={`w-10 h-10 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
           </div>
-          <h1 className={`text-3xl font-bold ${textColor} mb-2`}>Quiz Application</h1>
-          <p className={mutedText}>Upload a JSON or TXT file to start your quiz</p>
+          <h1 className={`text-3xl font-bold ${classes.textColor} mb-2`}>Quiz Application</h1>
+          <p className={classes.mutedText}>Upload a JSON or TXT file to start your quiz</p>
         </div>
 
         <div className="space-y-4">
-          {/* Shuffle toggles */}
           <div className="space-y-3">
-            <div className={`flex items-center justify-between p-4 ${inputBg} rounded-lg`}>
+            <div className={`flex items-center justify-between p-4 ${classes.inputBgPlain} rounded-lg`}>
               <div>
-                <p className={`font-medium ${textColor}`}>Shuffle Questions</p>
-                <p className={`text-sm ${mutedText}`}>Randomize question order</p>
+                <p className={`font-medium ${classes.textColor}`}>Shuffle Questions</p>
+                <p className={`text-sm ${classes.mutedText}`}>Randomize question order</p>
               </div>
               <button
                 onClick={() => setShuffleQuestions(!shuffleQuestions)}
@@ -174,10 +156,10 @@ const JSONUploadPage = ({
               </button>
             </div>
 
-            <div className={`flex items-center justify-between p-4 ${inputBg} rounded-lg`}>
+            <div className={`flex items-center justify-between p-4 ${classes.inputBgPlain} rounded-lg`}>
               <div>
-                <p className={`font-medium ${textColor}`}>Shuffle Options</p>
-                <p className={`text-sm ${mutedText}`}>Randomize answer choices</p>
+                <p className={`font-medium ${classes.textColor}`}>Shuffle Options</p>
+                <p className={`text-sm ${classes.mutedText}`}>Randomize answer choices</p>
               </div>
               <button
                 onClick={() => setShuffleOptions(!shuffleOptions)}
@@ -193,13 +175,11 @@ const JSONUploadPage = ({
             </div>
           </div>
 
-          {/* Quiz Size - Responsive Layout */}
-          <div className={`p-4 ${inputBg} rounded-lg space-y-3`}>
-            {/* Header with mode toggle */}
+          <div className={`p-4 ${classes.inputBgPlain} rounded-lg space-y-3`}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <label htmlFor="quizSize" className={`font-medium ${textColor} block`}>Quiz Size</label>
-                <p className={`text-sm ${mutedText} break-words`}>
+                <label htmlFor="quizSize" className={`font-medium ${classes.textColor} block`}>Quiz Size</label>
+                <p className={`text-sm ${classes.mutedText} break-words`}>
                   {quizSizeMode === 'percentage' ? 'Take a percentage of questions' : 'Specify exact number of questions'}
                 </p>
               </div>
@@ -207,7 +187,9 @@ const JSONUploadPage = ({
                 <button
                   onClick={() => setQuizSizeMode('percentage')}
                   className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                    quizSizeMode === 'percentage' ? 'bg-indigo-600 text-white' : `${isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-300 text-gray-700'}`
+                    quizSizeMode === 'percentage'
+                      ? 'bg-indigo-600 text-white'
+                      : `${isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-300 text-gray-700'}`
                   }`}
                   title="Percentage (%)"
                 >
@@ -216,7 +198,9 @@ const JSONUploadPage = ({
                 <button
                   onClick={() => setQuizSizeMode('count')}
                   className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                    quizSizeMode === 'count' ? 'bg-indigo-600 text-white' : `${isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-300 text-gray-700'}`
+                    quizSizeMode === 'count'
+                      ? 'bg-indigo-600 text-white'
+                      : `${isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-300 text-gray-700'}`
                   }`}
                   title="Number (#)"
                 >
@@ -224,8 +208,7 @@ const JSONUploadPage = ({
                 </button>
               </div>
             </div>
-            
-            {/* Input with inline label - responsive flex layout */}
+
             <div className="flex items-center gap-2">
               <input
                 id="quizSize"
@@ -234,15 +217,16 @@ const JSONUploadPage = ({
                 value={quizSize}
                 onChange={handleQuizSizeChange}
                 placeholder={quizSizeMode === 'percentage' ? '100' : '10'}
-                className={`flex-1 min-w-0 px-4 py-2 border-2 ${isDarkMode ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300 text-gray-800'} rounded-lg font-semibold focus:outline-none focus:border-indigo-500`}
+                className={`flex-1 min-w-0 px-4 py-2 border-2 ${
+                  isDarkMode ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300 text-gray-800'
+                } rounded-lg font-semibold focus:outline-none focus:border-indigo-500`}
               />
-              <span className={`${mutedText} font-medium whitespace-nowrap flex-shrink-0`}>
+              <span className={`${classes.mutedText} font-medium whitespace-nowrap flex-shrink-0`}>
                 {quizSizeMode === 'percentage' ? '%' : 'questions'}
               </span>
             </div>
           </div>
 
-          {/* File upload or uploaded file display */}
           {!uploadedFileInfo ? (
             <label className="block">
               <div className={`border-2 border-dashed ${isDarkMode ? 'border-indigo-500' : 'border-indigo-300'} rounded-lg p-8 text-center hover:border-indigo-500 transition-colors cursor-pointer`}>
@@ -250,19 +234,18 @@ const JSONUploadPage = ({
                 <svg className={`w-12 h-12 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-400'} mx-auto mb-2`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
-                <p className={`${textColor} font-medium`}>Click to upload JSON or TXT file</p>
-                <p className={`${mutedText} text-sm mt-1`}>or drag and drop</p>
-                <p className={`${mutedText} text-xs mt-2`}>Supported formats: .json, .txt</p>
+                <p className={`${classes.textColor} font-medium`}>Click to upload JSON or TXT file</p>
+                <p className={`${classes.mutedText} text-sm mt-1`}>or drag and drop</p>
+                <p className={`${classes.mutedText} text-xs mt-2`}>Supported formats: .json, .txt</p>
               </div>
             </label>
           ) : (
             <div className={`relative border-2 ${isDarkMode ? 'border-green-600 bg-green-900' : 'border-green-300 bg-green-50'} rounded-lg p-6`}>
-              {/* Remove button - top right corner */}
               <button
                 onClick={handleRemoveFile}
                 className={`absolute top-2 right-2 p-1.5 rounded-full transition-all ${
-                  isDarkMode 
-                    ? 'hover:bg-red-800 text-red-400 hover:text-red-300' 
+                  isDarkMode
+                    ? 'hover:bg-red-800 text-red-400 hover:text-red-300'
                     : 'hover:bg-red-100 text-red-600 hover:text-red-700'
                 }`}
                 aria-label="Remove file"
@@ -280,11 +263,11 @@ const JSONUploadPage = ({
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`font-semibold ${textColor} mb-1 break-words`}>{uploadedFileInfo.name}</p>
-                  <p className={`${mutedText} text-sm`}>{uploadedFileInfo.questionCount} questions loaded</p>
+                  <p className={`font-semibold ${classes.textColor} mb-1 break-words`}>{uploadedFileInfo.name}</p>
+                  <p className={`${classes.mutedText} text-sm`}>{uploadedFileInfo.questionCount} questions loaded</p>
                 </div>
               </div>
-              
+
               <button
                 onClick={startQuiz}
                 className="w-full mt-4 px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
@@ -299,14 +282,16 @@ const JSONUploadPage = ({
           )}
 
           {error && (
-            <div className={`${isDarkMode ? 'bg-red-900 border-red-700 text-red-300' : 'bg-red-50 border-red-200 text-red-700'} border px-4 py-3 rounded-lg`}>
+            <div className={`${
+              isDarkMode ? 'bg-red-900 border-red-700 text-red-300' : 'bg-red-50 border-red-200 text-red-700'
+            } border px-4 py-3 rounded-lg`}>
               <p className="text-sm font-medium">{error}</p>
             </div>
           )}
         </div>
 
-        <div className={`mt-6 p-4 ${inputBg} rounded-lg`}>
-          <p className={`text-sm ${mutedText} font-medium mb-2`}>Expected JSON format:</p>
+        <div className={`mt-6 p-4 ${classes.inputBgPlain} rounded-lg`}>
+          <p className={`text-sm ${classes.mutedText} font-medium mb-2`}>Expected JSON format:</p>
           <pre className={`text-xs ${isDarkMode ? 'bg-gray-900 text-gray-300' : 'bg-white text-gray-800'} p-2 rounded border overflow-x-auto`}>
 {`{
   "questions": [
@@ -321,7 +306,7 @@ const JSONUploadPage = ({
 }
 `}
           </pre>
-          <div className={`text-sm ${mutedText} font-medium mt-2 space-y-1`}>
+          <div className={`text-sm ${classes.mutedText} font-medium mt-2 space-y-1`}>
             <p>Note:</p>
             <p>Both .json and .txt are accepted; the file must contain valid quiz JSON.</p>
             <p>"explanation" and "shuffle" are optional.</p>
@@ -330,8 +315,8 @@ const JSONUploadPage = ({
           </div>
         </div>
 
-        <div className={`mt-6 p-4 ${inputBg} rounded-lg`}>
-          <p className={`text-sm ${mutedText} mb-3 text-center`}>Don't have a quiz file yet?</p>
+        <div className={`mt-6 p-4 ${classes.inputBgPlain} rounded-lg`}>
+          <p className={`text-sm ${classes.mutedText} mb-3 text-center`}>Don't have a quiz file yet?</p>
           <button
             onClick={() => setView('create')}
             className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-all"

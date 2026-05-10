@@ -1,23 +1,17 @@
 import OptionEditor from './OptionEditor';
+import { useTheme } from '../../contexts/useTheme';
 
-const QuestionEditor = ({
-  question,
-  index,
-  onChange,
-  onRemove,
-  canRemove,
-  isDarkMode,
-}) => {
+const QuestionEditor = ({ question, index, onChange, onRemove, canRemove }) => {
+  const { isDarkMode, classes } = useTheme();
+
+  // QuestionEditor cards sit inside QuizCreatorPage's card, so we need a
+  // contrasting background — innerBg flips to the lighter of the two.
   const cardBg = isDarkMode ? 'bg-gray-700' : 'bg-gray-50';
   const inputBg = isDarkMode
     ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-500'
     : 'bg-white border-gray-300 text-gray-800 placeholder-gray-400';
-  const textColor = isDarkMode ? 'text-gray-200' : 'text-gray-800';
-  const mutedText = isDarkMode ? 'text-gray-400' : 'text-gray-600';
 
-  const updateField = (field, value) => {
-    onChange({ ...question, [field]: value });
-  };
+  const updateField = (field, value) => onChange({ ...question, [field]: value });
 
   const updateOption = (optIdx, updatedOption) => {
     const newOptions = question.options.map((o, i) => (i === optIdx ? updatedOption : o));
@@ -33,15 +27,11 @@ const QuestionEditor = ({
 
   const removeOption = (optIdx) => {
     if (question.options.length <= 2) return;
-    onChange({
-      ...question,
-      options: question.options.filter((_, i) => i !== optIdx),
-    });
+    onChange({ ...question, options: question.options.filter((_, i) => i !== optIdx) });
   };
 
-  // Selecting a correct option in single-choice mode: mark this one true,
-  // unmark the rest. Bubbled from OptionEditor since only the parent knows
-  // about siblings.
+  // Single-choice radio behavior: marking one option correct must unmark the
+  // rest. Lives at the parent level since OptionEditor only sees itself.
   const selectSingleCorrect = (optIdx) => {
     onChange({
       ...question,
@@ -52,7 +42,8 @@ const QuestionEditor = ({
   const setType = (type) => {
     if (type === question.type) return;
     let newOptions = question.options;
-    // Switching to single: keep only the first marked correct, unmark rest.
+    // Switching multi → single keeps only the first marked-correct option to
+    // avoid an "invalid" state where multiple options stay flagged.
     if (type === 'single') {
       let kept = false;
       newOptions = question.options.map((o) => {
@@ -68,15 +59,12 @@ const QuestionEditor = ({
 
   const typeButton = (value, label) => {
     const active = question.type === value;
-    const inactiveStyle = isDarkMode
-      ? 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-      : 'bg-gray-300 text-gray-700 hover:bg-gray-400';
     return (
       <button
         type="button"
         onClick={() => setType(value)}
         className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-          active ? 'bg-indigo-600 text-white' : inactiveStyle
+          active ? 'bg-indigo-600 text-white' : classes.secondaryBtn
         }`}
       >
         {label}
@@ -87,7 +75,7 @@ const QuestionEditor = ({
   return (
     <div className={`${cardBg} rounded-xl p-5 space-y-4 animate-fadeInUp`}>
       <div className="flex items-start justify-between gap-3">
-        <h3 className={`text-lg font-bold ${textColor}`}>Question {index + 1}</h3>
+        <h3 className={`text-lg font-bold ${classes.textColor}`}>Question {index + 1}</h3>
         {canRemove && (
           <button
             type="button"
@@ -105,7 +93,7 @@ const QuestionEditor = ({
       </div>
 
       <div>
-        <label className={`block text-sm font-medium ${mutedText} mb-1`}>
+        <label className={`block text-sm font-medium ${classes.mutedText} mb-1`}>
           Question text
         </label>
         <textarea
@@ -118,7 +106,7 @@ const QuestionEditor = ({
       </div>
 
       <div>
-        <label className={`block text-sm font-medium ${mutedText} mb-2`}>Answer type</label>
+        <label className={`block text-sm font-medium ${classes.mutedText} mb-2`}>Answer type</label>
         <div className="flex flex-wrap gap-2">
           {typeButton('single', 'Single Choice')}
           {typeButton('multi', 'Multiple Choice')}
@@ -126,7 +114,7 @@ const QuestionEditor = ({
       </div>
 
       <div>
-        <label className={`block text-sm font-medium ${mutedText} mb-2`}>
+        <label className={`block text-sm font-medium ${classes.mutedText} mb-2`}>
           Options{' '}
           <span className="font-normal">
             ({question.type === 'single'
@@ -146,7 +134,6 @@ const QuestionEditor = ({
               onRemove={() => removeOption(optIdx)}
               onSelectSingle={() => selectSingleCorrect(optIdx)}
               canRemove={question.options.length > 2}
-              isDarkMode={isDarkMode}
             />
           ))}
         </div>
@@ -164,7 +151,7 @@ const QuestionEditor = ({
       </div>
 
       <div>
-        <label className={`block text-sm font-medium ${mutedText} mb-1`}>
+        <label className={`block text-sm font-medium ${classes.mutedText} mb-1`}>
           Explanation <span className="font-normal">(optional)</span>
         </label>
         <textarea
@@ -183,7 +170,7 @@ const QuestionEditor = ({
           onChange={(e) => updateField('noShuffleOptions', e.target.checked)}
           className="w-4 h-4 accent-indigo-600"
         />
-        <span className={`text-sm ${mutedText}`}>
+        <span className={`text-sm ${classes.mutedText}`}>
           Never shuffle options for this question (sets <code>shuffle: 0</code>)
         </span>
       </label>

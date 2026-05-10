@@ -1,64 +1,43 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import JSONUploadPage from './components/pages/JSONUploadPage';
 import QuizPage from './components/pages/QuizPage';
 import ResultPage from './components/pages/ResultPage';
 import ReviewPage from './components/pages/ReviewPage';
 import QuizCreatorPage from './components/pages/QuizCreatorPage';
 import ThemeToggle from './components/ui/ThemeToggle';
+import { useTheme } from './contexts/useTheme';
 
 const App = () => {
-  // View management
-  const [view, setView] = useState('upload'); // upload, quiz, results, review, create
-  
-  // Theme management
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  
+  const { classes } = useTheme();
+
+  // upload, quiz, results, review, create
+  const [view, setView] = useState('upload');
+
   // Quiz data and state
   const [originalQuizData, setOriginalQuizData] = useState(null);
   const [processedQuizData, setProcessedQuizData] = useState(null);
   const [answers, setAnswers] = useState({});
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  
-  // File persistence - keeps uploaded file info across navigation
+
+  // Keeps the picked file alive across navigation so the user can come back
+  // to the upload page without re-selecting it.
   const [uploadedFileInfo, setUploadedFileInfo] = useState(null);
-  
-  // Settings
+
   const [activeSettings, setActiveSettings] = useState({
     shuffleQuestions: false,
     shuffleOptions: false,
     quizSize: 100,
-    quizSizeMode: 'percentage'
+    quizSizeMode: 'percentage',
   });
 
-  // Load theme from localStorage on mount
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('quizAppTheme');
-    if (savedTheme === 'dark') {
-      setIsDarkMode(true);
-    }
-  }, []);
-
-  // Save theme to localStorage when changed
-  useEffect(() => {
-    localStorage.setItem('quizAppTheme', isDarkMode ? 'dark' : 'light');
-  }, [isDarkMode]);
-
-  // Theme classes
-  const themeClasses = isDarkMode
-    ? 'bg-gray-900 text-gray-100'
-    : 'bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-800';
-
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${themeClasses}`}>
-      {/* Theme toggle - always visible */}
+    <div className={`min-h-screen transition-colors duration-300 ${classes.pageGradient}`}>
       <div className="fixed top-4 right-4 z-50">
-        <ThemeToggle isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+        <ThemeToggle />
       </div>
 
-      {/* Page routing */}
       {view === 'upload' && (
         <JSONUploadPage
-          isDarkMode={isDarkMode}
           setView={setView}
           setOriginalQuizData={setOriginalQuizData}
           setProcessedQuizData={setProcessedQuizData}
@@ -72,7 +51,6 @@ const App = () => {
 
       {view === 'quiz' && (
         <QuizPage
-          isDarkMode={isDarkMode}
           quizData={processedQuizData}
           answers={answers}
           setAnswers={setAnswers}
@@ -84,7 +62,6 @@ const App = () => {
 
       {view === 'results' && (
         <ResultPage
-          isDarkMode={isDarkMode}
           quizData={processedQuizData}
           originalQuizData={originalQuizData}
           answers={answers}
@@ -98,19 +75,13 @@ const App = () => {
 
       {view === 'review' && (
         <ReviewPage
-          isDarkMode={isDarkMode}
           quizData={processedQuizData}
           answers={answers}
           setView={setView}
         />
       )}
 
-      {view === 'create' && (
-        <QuizCreatorPage
-          isDarkMode={isDarkMode}
-          setView={setView}
-        />
-      )}
+      {view === 'create' && <QuizCreatorPage setView={setView} />}
     </div>
   );
 };

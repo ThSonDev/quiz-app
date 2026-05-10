@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import QuestionEditor from '../ui/QuestionEditor';
+import Modal from '../ui/Modal';
 import { downloadQuizFile } from '../../utils/utils';
+import { useTheme } from '../../contexts/useTheme';
 
 const emptyQuestion = () => ({
   question: '',
@@ -63,19 +65,12 @@ function buildQuizPayload(questions) {
   return { data: { questions: built } };
 }
 
-const QuizCreatorPage = ({ isDarkMode, setView }) => {
+const QuizCreatorPage = ({ setView }) => {
+  const { isDarkMode, classes } = useTheme();
   const [questions, setQuestions] = useState([emptyQuestion(), emptyQuestion()]);
   const [filename, setFilename] = useState('my-quiz');
   const [error, setError] = useState('');
   const [showExitModal, setShowExitModal] = useState(false);
-
-  const cardBg = isDarkMode ? 'bg-gray-800' : 'bg-white';
-  const inputBg = isDarkMode
-    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500'
-    : 'bg-gray-50 border-gray-300 text-gray-800 placeholder-gray-400';
-  const innerBg = isDarkMode ? 'bg-gray-700' : 'bg-gray-50';
-  const textColor = isDarkMode ? 'text-gray-200' : 'text-gray-800';
-  const mutedText = isDarkMode ? 'text-gray-400' : 'text-gray-600';
 
   const addQuestion = () => {
     setQuestions((prev) => [...prev, emptyQuestion()]);
@@ -130,10 +125,10 @@ const QuizCreatorPage = ({ isDarkMode, setView }) => {
           </button>
         </div>
 
-        <div className={`${cardBg} rounded-2xl shadow-2xl p-6 sm:p-8`}>
+        <div className={`${classes.cardBg} rounded-2xl shadow-2xl p-6 sm:p-8`}>
           <div className="mb-6">
-            <h1 className={`text-3xl font-bold ${textColor} mb-2`}>Quiz Creator</h1>
-            <p className={mutedText}>
+            <h1 className={`text-3xl font-bold ${classes.textColor} mb-2`}>Quiz Creator</h1>
+            <p className={classes.mutedText}>
               Build a quiz and download it as a JSON or TXT file. You can upload it back
               from the home page to take the quiz.
             </p>
@@ -148,7 +143,6 @@ const QuizCreatorPage = ({ isDarkMode, setView }) => {
                 onChange={(updated) => updateQuestion(idx, updated)}
                 onRemove={() => removeQuestion(idx)}
                 canRemove={questions.length > 1}
-                isDarkMode={isDarkMode}
               />
             ))}
           </div>
@@ -161,11 +155,11 @@ const QuizCreatorPage = ({ isDarkMode, setView }) => {
             Add Question
           </button>
 
-          <div className={`mt-8 p-5 ${innerBg} rounded-xl space-y-4`}>
+          <div className={`mt-8 p-5 ${classes.innerBg} rounded-xl space-y-4`}>
             <div>
               <label
                 htmlFor="quizFilename"
-                className={`block text-sm font-medium ${mutedText} mb-1`}
+                className={`block text-sm font-medium ${classes.mutedText} mb-1`}
               >
                 File name
               </label>
@@ -174,7 +168,7 @@ const QuizCreatorPage = ({ isDarkMode, setView }) => {
                 type="text"
                 value={filename}
                 onChange={(e) => setFilename(e.target.value)}
-                className={`w-full px-4 py-2 border-2 ${inputBg} rounded-lg focus:outline-none focus:border-indigo-500`}
+                className={`w-full px-4 py-2 border-2 ${classes.inputBg} rounded-lg focus:outline-none focus:border-indigo-500`}
                 placeholder="my-quiz"
               />
             </div>
@@ -198,18 +192,14 @@ const QuizCreatorPage = ({ isDarkMode, setView }) => {
               </button>
             </div>
 
-            <p className={`text-xs ${mutedText}`}>
+            <p className={`text-xs ${classes.mutedText}`}>
               Both formats contain the same JSON content. Pick whichever extension you prefer.
             </p>
 
             {error && (
-              <div
-                className={`${
-                  isDarkMode
-                    ? 'bg-red-900 border-red-700 text-red-300'
-                    : 'bg-red-50 border-red-200 text-red-700'
-                } border px-4 py-3 rounded-lg`}
-              >
+              <div className={`${
+                isDarkMode ? 'bg-red-900 border-red-700 text-red-300' : 'bg-red-50 border-red-200 text-red-700'
+              } border px-4 py-3 rounded-lg`}>
                 <p className="text-sm font-medium">{error}</p>
               </div>
             )}
@@ -218,34 +208,25 @@ const QuizCreatorPage = ({ isDarkMode, setView }) => {
       </div>
 
       {showExitModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className={`${cardBg} rounded-xl shadow-2xl p-6 max-w-md w-full animate-fadeInUp`}>
-            <h3 className={`text-xl font-bold ${textColor} mb-4`}>Discard quiz?</h3>
-            <p className={`${mutedText} mb-6`}>
-              Your unsaved quiz will be lost. Download it first if you want to keep it.
-            </p>
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={confirmExit}
-                className="w-full px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-all"
-              >
-                Yes, Discard
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowExitModal(false)}
-                className={`w-full px-6 py-3 ${
-                  isDarkMode
-                    ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
-                    : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
-                } rounded-lg font-medium transition-all`}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <Modal
+          title="Discard quiz?"
+          description="Your unsaved quiz will be lost. Download it first if you want to keep it."
+        >
+          <button
+            type="button"
+            onClick={confirmExit}
+            className="w-full px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-all"
+          >
+            Yes, Discard
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowExitModal(false)}
+            className={`w-full px-6 py-3 ${classes.secondaryBtn} rounded-lg font-medium transition-all`}
+          >
+            Cancel
+          </button>
+        </Modal>
       )}
     </div>
   );

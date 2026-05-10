@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { processQuizData, calculateQuestionScore } from '../../utils/utils';
+import { useTheme } from '../../contexts/useTheme';
+import Modal from '../ui/Modal';
 
 const ResultPage = ({
-  isDarkMode,
   quizData,
   originalQuizData,
   answers,
@@ -10,48 +11,38 @@ const ResultPage = ({
   activeSettings,
   setCurrentQuestion,
   setProcessedQuizData,
-  setView
+  setView,
 }) => {
+  const { isDarkMode, classes } = useTheme();
   const [showRetryModal, setShowRetryModal] = useState(false);
 
-  const cardBg = isDarkMode ? 'bg-gray-800' : 'bg-white';
-  const textColor = isDarkMode ? 'text-gray-200' : 'text-gray-800';
-  const mutedText = isDarkMode ? 'text-gray-400' : 'text-gray-600';
-  const hasMultiChoice = quizData.questions.some(q => Array.isArray(q.correctAnswer) && q.correctAnswer.length > 1);
+  const hasMultiChoice = quizData.questions.some(
+    (q) => Array.isArray(q.correctAnswer) && q.correctAnswer.length > 1
+  );
 
   const calculateResults = () => {
     let totalPoints = 0;
     let correctCount = 0;
     let incorrectCount = 0;
     let partialCount = 0;
-    // Note: Questions with 0 < Score < 1 are "partial" and contribute to totalPoints but are not strictly "Correct" or "Incorrect" in the binary counts.
 
     quizData.questions.forEach((q, idx) => {
-      const userAns = answers[idx];
-      const qScore = calculateQuestionScore(q, userAns);
-      
+      const qScore = calculateQuestionScore(q, answers[idx]);
       totalPoints += qScore;
-
-      if (qScore === 1) {
-        correctCount++;
-      } else if (qScore === 0) {
-        incorrectCount++;
-      } else {
-        partialCount++;
-      }
+      if (qScore === 1) correctCount++;
+      else if (qScore === 0) incorrectCount++;
+      else partialCount++;
     });
 
-    // Final Score Calculation (out of 10)
-    // Formula: (TotalPoints / TotalQuestions) * 10
     const totalQuestions = quizData.questions.length;
     const finalScore = (totalPoints / totalQuestions) * 10;
 
-    return { 
-        correctCount,
-        partialCount, 
-        incorrectCount, 
-        totalQuestions,
-        score: finalScore.toFixed(2) // Display standard 2 decimals for the big score
+    return {
+      correctCount,
+      partialCount,
+      incorrectCount,
+      totalQuestions,
+      score: finalScore.toFixed(2),
     };
   };
 
@@ -60,11 +51,8 @@ const ResultPage = ({
 
   const handleRetry = () => {
     const hasShuffleActive = activeSettings.shuffleQuestions || activeSettings.shuffleOptions;
-    if (hasShuffleActive) {
-      setShowRetryModal(true);
-    } else {
-      retrySameLayout();
-    }
+    if (hasShuffleActive) setShowRetryModal(true);
+    else retrySameLayout();
   };
 
   const retrySameLayout = () => {
@@ -83,7 +71,6 @@ const ResultPage = ({
     setView('quiz');
   };
 
-  // Return to upload page - preserves uploaded file
   const handleFinish = () => {
     setAnswers({});
     setCurrentQuestion(0);
@@ -92,20 +79,20 @@ const ResultPage = ({
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className={`${cardBg} rounded-2xl shadow-2xl p-8 max-w-md w-full`}>
+      <div className={`${classes.cardBg} rounded-2xl shadow-2xl p-8 max-w-md w-full`}>
         <div className="text-center mb-8">
           <div className={`${isDarkMode ? 'bg-green-900' : 'bg-green-100'} w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4`}>
             <span className={`text-4xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>{score}</span>
           </div>
-          <h2 className={`text-3xl font-bold ${textColor} mb-2`}>
+          <h2 className={`text-3xl font-bold ${classes.textColor} mb-2`}>
             Quiz Complete!{showPercentage && ` (${activeSettings.quizSize}%)`}
           </h2>
-          <p className={mutedText}>Here are your results</p>
+          <p className={classes.mutedText}>Here are your results</p>
         </div>
 
         <div className="space-y-4 mb-8">
           <div className={`flex justify-between items-center p-4 ${isDarkMode ? 'bg-green-900' : 'bg-green-50'} rounded-lg`}>
-            <span className={`font-medium ${mutedText}`}>Correct Answers</span>
+            <span className={`font-medium ${classes.mutedText}`}>Correct Answers</span>
             <span className={`text-2xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
               {correctCount} <span className={`text-lg font-normal ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>/{totalQuestions}</span>
             </span>
@@ -113,7 +100,7 @@ const ResultPage = ({
 
           {hasMultiChoice && (
             <div className={`flex justify-between items-center p-4 ${isDarkMode ? 'bg-yellow-900' : 'bg-yellow-50'} rounded-lg`}>
-              <span className={`font-medium ${mutedText}`}>Partial Correct Answers</span>
+              <span className={`font-medium ${classes.mutedText}`}>Partial Correct Answers</span>
               <span className={`text-2xl font-bold ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
                 {partialCount} <span className={`text-lg font-normal ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>/{totalQuestions}</span>
               </span>
@@ -121,14 +108,14 @@ const ResultPage = ({
           )}
 
           <div className={`flex justify-between items-center p-4 ${isDarkMode ? 'bg-red-900' : 'bg-red-50'} rounded-lg`}>
-            <span className={`font-medium ${mutedText}`}>Incorrect Answers</span>
+            <span className={`font-medium ${classes.mutedText}`}>Incorrect Answers</span>
             <span className={`text-2xl font-bold ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
               {incorrectCount} <span className={`text-lg font-normal ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>/{totalQuestions}</span>
             </span>
           </div>
 
           <div className={`flex justify-between items-center p-4 ${isDarkMode ? 'bg-indigo-900' : 'bg-indigo-50'} rounded-lg`}>
-            <span className={`font-medium ${mutedText}`}>Final Score (out of 10)</span>
+            <span className={`font-medium ${classes.mutedText}`}>Final Score (out of 10)</span>
             <span className={`text-2xl font-bold ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>{score}</span>
           </div>
         </div>
@@ -157,7 +144,9 @@ const ResultPage = ({
           </button>
           <button
             onClick={handleFinish}
-            className={`w-full flex items-center justify-center px-6 py-3 ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-600 hover:bg-gray-700'} text-white rounded-lg font-medium transition-all`}
+            className={`w-full flex items-center justify-center px-6 py-3 ${
+              isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-600 hover:bg-gray-700'
+            } text-white rounded-lg font-medium transition-all`}
             title="Return to Upload"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -168,27 +157,36 @@ const ResultPage = ({
         </div>
       </div>
 
-      {/* Retry Modal */}
       {showRetryModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className={`${cardBg} rounded-xl shadow-2xl p-6 max-w-md w-full animate-fadeInUp`}>
-            <h3 className={`text-xl font-bold ${textColor} mb-4`}>Retry Quiz</h3>
-            <p className={`${mutedText} mb-6`}>Choose how you want to retry the quiz:</p>
-            <div className="space-y-3">
-              <button onClick={retrySameLayout} className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all" title="Retry previous Quiz">
-                Same Layout
-                <span className="block text-sm text-indigo-200 mt-1">Keep the same question and option order</span>
-              </button>
-              <button onClick={retryNewShuffle} className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-all" title="Do a new Quiz">
-                New Shuffle
-                <span className="block text-sm text-purple-200 mt-1">Randomize questions and options again</span>
-              </button>
-              <button onClick={() => setShowRetryModal(false)} className={`w-full px-6 py-3 ${isDarkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'} rounded-lg font-medium transition-all`} title="Return">
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <Modal title="Retry Quiz" description="Choose how you want to retry the quiz:">
+          <button
+            onClick={retrySameLayout}
+            className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all"
+            title="Retry previous Quiz"
+          >
+            Same Layout
+            <span className="block text-sm text-indigo-200 mt-1">
+              Keep the same question and option order
+            </span>
+          </button>
+          <button
+            onClick={retryNewShuffle}
+            className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-all"
+            title="Do a new Quiz"
+          >
+            New Shuffle
+            <span className="block text-sm text-purple-200 mt-1">
+              Randomize questions and options again
+            </span>
+          </button>
+          <button
+            onClick={() => setShowRetryModal(false)}
+            className={`w-full px-6 py-3 ${classes.secondaryBtn} rounded-lg font-medium transition-all`}
+            title="Return"
+          >
+            Cancel
+          </button>
+        </Modal>
       )}
     </div>
   );
