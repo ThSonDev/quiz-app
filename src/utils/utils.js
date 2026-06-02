@@ -17,25 +17,41 @@ export function validateQuizData(data) {
     for (let i = 0; i < data.questions.length; i++) {
         const q = data.questions[i];
 
-        if (!q.question || !q.options || !Array.isArray(q.options) || q.correctAnswer === undefined) {
+        if (
+            typeof q.question !== 'string' ||
+            !q.question.trim() ||
+            !q.options ||
+            !Array.isArray(q.options) ||
+            q.correctAnswer === undefined
+        ) {
             return `Invalid question format at index ${i}`;
         }
         if (q.options.length < 2) {
             return `Question ${i} must have at least 2 options`;
         }
+        if (q.options.some(option => typeof option !== 'string' || !option.trim())) {
+            return `Question ${i} has an invalid option`;
+        }
 
         const isMulti = Array.isArray(q.correctAnswer);
+        const isValidAnswerIndex = (idx) =>
+            Number.isInteger(idx) && idx >= 0 && idx < q.options.length;
 
         if (isMulti) {
             if (q.correctAnswer.length === 0) return `Question ${i} must have at least one correct answer`;
+            const seen = new Set();
             for (let idx of q.correctAnswer) {
-                if (idx < 0 || idx >= q.options.length) {
+                if (!isValidAnswerIndex(idx)) {
                     return `Invalid index ${idx} in correctAnswer for question ${i}`;
                 }
+                if (seen.has(idx)) {
+                    return `Duplicate index ${idx} in correctAnswer for question ${i}`;
+                }
+                seen.add(idx);
             }
         } else {
             // Single choice validation
-            if (q.correctAnswer < 0 || q.correctAnswer >= q.options.length) {
+            if (!isValidAnswerIndex(q.correctAnswer)) {
                 return `Invalid correctAnswer index for question ${i}`;
             }
         }
@@ -141,7 +157,7 @@ export function calculateQuestionScore(question, userAnswer) {
         const C = correctArr.length;
         
         // S = User Selection Count
-        const userArr = Array.isArray(userAnswer) ? userAnswer : [userAnswer];
+        const userArr = [...new Set(Array.isArray(userAnswer) ? userAnswer : [userAnswer])];
         const S = userArr.length;
 
         if (S === 0) return 0;
