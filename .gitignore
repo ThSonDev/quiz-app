@@ -29,4 +29,6 @@ test.jsx
 temp/
 
 .claude/
+.agents/
+.codex/
 CLAUDE.md
