@@ -46,6 +46,9 @@ npm run build
 
 # Preview the production build
 npm run preview
+
+# Run the domain test suite
+npm test
 ```
 
 ## Project Structure
@@ -75,7 +78,10 @@ quiz-app/
 │   │       ├── QuestionEditor.jsx    # One question card in the creator
 │   │       └── OptionEditor.jsx      # One option row in the creator
 │   └── utils/
-│       └── utils.js                  # Shuffle, validation, scoring, download
+│       ├── utils.js                  # Shuffle, validation, scoring, download
+│       └── quizCreator.js            # Creator <-> upload shape converters
+├── tests/
+│   └── domain/                       # node:test suites for the pure logic
 ├── index.html
 ├── tailwind.config.js
 └── vite.config.js
@@ -199,6 +205,7 @@ In this example, options won't shuffle even if "Shuffle Options" is ON, preventi
 If you'd rather not write JSON by hand, the upload page has a **Create Your Own Quiz** button that opens an in-browser editor.
 
 What you can do:
+- Start from scratch, or click **Upload Your Quiz** to import an existing `.json`/`.txt` quiz and edit it
 - Add and remove questions
 - Toggle each question between **Single Choice** and **Multiple Choice**
 - Add and remove options (minimum 2 per question)
@@ -207,7 +214,7 @@ What you can do:
 - Tick "Never shuffle options for this question" to emit `"shuffle": 0`
 - Pick a file name and download as **`.json`** or **`.txt`**
 
-The downloaded file matches the same JSON schema described above, so you can immediately upload it back to take the quiz. Both extensions contain identical content; pick whichever your tooling prefers.
+Imported files are validated against the schema above before loading; if you already have questions in progress, the editor asks before replacing them. The downloaded file matches the same JSON schema, so you can immediately upload it back to take the quiz. Both extensions contain identical content; pick whichever your tooling prefers.
 
 ## Contributing
 
