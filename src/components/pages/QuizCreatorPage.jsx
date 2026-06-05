@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import QuestionEditor from '../ui/QuestionEditor';
 import Modal from '../ui/Modal';
-import { downloadQuizFile } from '../../utils/utils';
+import { downloadQuizFile, validateQuizData } from '../../utils/utils';
 import { useTheme } from '../../contexts/useTheme';
-import { buildQuizPayload, emptyQuestion } from '../../utils/quizCreator';
+import { buildQuizPayload, emptyQuestion, quizToCreatorQuestions } from '../../utils/quizCreator';
 
 const QuizCreatorPage = ({ setView }) => {
   const { isDarkMode, classes } = useTheme();
@@ -11,6 +11,10 @@ const QuizCreatorPage = ({ setView }) => {
   const [filename, setFilename] = useState('my-quiz');
   const [error, setError] = useState('');
   const [showExitModal, setShowExitModal] = useState(false);
+  // Questions parsed from an upload, held until the user confirms replacing
+  // their current work. null when no import is awaiting confirmation.
+  const [pendingImport, setPendingImport] = useState(null);
+  const importInputRef = useRef(null);
 
   const addQuestion = () => {
     setQuestions((prev) => [...prev, emptyQuestion()]);
@@ -39,6 +43,38 @@ const QuizCreatorPage = ({ setView }) => {
     (q) => q.question.trim() || q.options.some((o) => o.text.trim()) || q.explanation.trim()
   );
 
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    // Reset the input so re-selecting the same file fires onChange again.
+    e.target.value = '';
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        const validationError = validateQuizData(data);
+        if (validationError) {
+          setError(validationError);
+          return;
+        }
+        setError('');
+        const imported = quizToCreatorQuestions(data);
+        // Guard against silently discarding in-progress work.
+        if (hasContent) setPendingImport(imported);
+        else setQuestions(imported);
+      } catch {
+        setError('Invalid JSON file format');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const confirmImport = () => {
+    setQuestions(pendingImport);
+    setPendingImport(null);
+  };
+
   const requestExit = () => {
     if (hasContent) setShowExitModal(true);
     else setView('upload');
@@ -52,7 +88,7 @@ const QuizCreatorPage = ({ setView }) => {
   return (
     <div className="min-h-screen p-4">
       <div className="max-w-4xl mx-auto py-8">
-        <div className="mb-4">
+        <div className="mb-4 flex flex-wrap gap-3">
           <button
             type="button"
             onClick={requestExit}
@@ -63,14 +99,30 @@ const QuizCreatorPage = ({ setView }) => {
           >
             Back to Upload
           </button>
+          <button
+            type="button"
+            onClick={() => importInputRef.current?.click()}
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-all"
+            title="Upload an existing quiz to edit"
+          >
+            Upload Your Quiz
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".json,.txt"
+            onChange={handleImport}
+            className="hidden"
+          />
         </div>
 
         <div className={`${classes.cardBg} rounded-2xl shadow-2xl p-6 sm:p-8`}>
           <div className="mb-6">
             <h1 className={`text-3xl font-bold ${classes.textColor} mb-2`}>Quiz Creator</h1>
             <p className={classes.mutedText}>
-              Build a quiz and download it as a JSON or TXT file. You can upload it back
-              from the home page to take the quiz.
+              Build a quiz from scratch, or upload an existing JSON or TXT quiz to add,
+              edit, and remove questions. Download the result and upload it back from the
+              home page to take the quiz.
             </p>
           </div>
 
@@ -162,6 +214,28 @@ const QuizCreatorPage = ({ setView }) => {
           <button
             type="button"
             onClick={() => setShowExitModal(false)}
+            className={`w-full px-6 py-3 ${classes.secondaryBtn} rounded-lg font-medium transition-all`}
+          >
+            Cancel
+          </button>
+        </Modal>
+      )}
+
+      {pendingImport && (
+        <Modal
+          title="Replace current quiz?"
+          description="Uploading will replace the questions you have now. This cannot be undone."
+        >
+          <button
+            type="button"
+            onClick={confirmImport}
+            className="w-full px-6 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-all"
+          >
+            Replace
+          </button>
+          <button
+            type="button"
+            onClick={() => setPendingImport(null)}
             className={`w-full px-6 py-3 ${classes.secondaryBtn} rounded-lg font-medium transition-all`}
           >
             Cancel

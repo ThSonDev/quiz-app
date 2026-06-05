@@ -9,6 +9,23 @@ export const emptyQuestion = () => ({
   noShuffleOptions: false,
 });
 
+// Converts an uploaded quiz (the JSON upload contract) back into the creator's
+// internal question shape so it can be edited. Inverse of buildQuizPayload.
+// Caller must run validateQuizData first; this assumes well-formed input.
+export function quizToCreatorQuestions(data) {
+  return data.questions.map((q) => {
+    const correct = Array.isArray(q.correctAnswer) ? q.correctAnswer : [q.correctAnswer];
+    const isMulti = correct.length > 1;
+    return {
+      question: q.question,
+      type: isMulti ? 'multi' : 'single',
+      options: q.options.map((text, idx) => ({ text, isCorrect: correct.includes(idx) })),
+      explanation: q.explanation || '',
+      noShuffleOptions: q.shuffle === 0,
+    };
+  });
+}
+
 // Converts the creator's internal question shape into the uploaded quiz JSON
 // contract. Returns { error } on the first invalid question, or { data } on
 // success.
