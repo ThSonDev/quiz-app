@@ -9,6 +9,7 @@ A modern, feature-rich web-based quiz application with customizable shuffle opti
 ## Features
 
 - **JSON-based quizzes** - Upload your own quiz data (`.json` or `.txt`)
+- **Saved quiz library** - Previously uploaded quizzes are remembered in your browser (no login); pick one to redo, edit its questions, bookmark favorites to the top, or remove them
 - **Built-in Quiz Creator** - Build a quiz in the browser and download it as `.json` or `.txt`
 - **Single & multiple choice** - Mix both types in the same quiz; multi-choice answers are scored with partial credit (F1)
 - **Smart shuffling** - Randomize questions and/or answer options. Override shuffle settings for specific questions
@@ -71,6 +72,7 @@ quiz-app/
 │   │   │   └── QuizCreatorPage.jsx   # In-browser quiz editor
 │   │   └── ui/
 │   │       ├── ThemeToggle.jsx       # Dark/light toggle
+│   │       ├── QuizLibraryPane.jsx   # Slide-over list of saved quizzes
 │   │       ├── Modal.jsx             # Generic centered confirm modal
 │   │       ├── AnswerOption.jsx      # Answer button used by QuizPage
 │   │       ├── QuizProgressBar.jsx   # Progress card for QuizPage
@@ -79,7 +81,8 @@ quiz-app/
 │   │       └── OptionEditor.jsx      # One option row in the creator
 │   └── utils/
 │       ├── utils.js                  # Shuffle, validation, scoring, download
-│       └── quizCreator.js            # Creator <-> upload shape converters
+│       ├── quizCreator.js            # Creator <-> upload shape converters
+│       └── storage.js                # Saved-quiz library (localStorage)
 ├── tests/
 │   └── domain/                       # node:test suites for the pure logic
 ├── index.html
@@ -152,6 +155,17 @@ Before uploading your quiz:
 
 > Both `.json` and `.txt` are accepted. Either way the file must contain valid quiz JSON; only the extension differs.
 
+#### Saved quizzes
+
+Every quiz you upload is saved in your browser, so you can come back later and redo it without re-picking the file. Once you have at least one saved quiz, a **Choose a Saved Quiz** button appears on the upload page and opens a side panel listing them by upload time, with file name and question count. From there you can:
+
+- Select a quiz to load it, then configure shuffle/size and start as usual
+- Edit a loaded quiz: click the pencil on the loaded-quiz card to open it in the editor, change its questions, and Save Changes back to your saved quizzes
+- Star a quiz to bookmark it to the top of the list
+- Remove quizzes you no longer want
+
+Quizzes that share a name and question count but have different content are kept as separate entries, distinguished by upload time. This data lives only in the current browser (no account, no sync); clearing site data removes it.
+
 ### 4. View Results
 
 After completing all questions:
@@ -213,6 +227,8 @@ What you can do:
 - Add an optional explanation per question
 - Tick "Never shuffle options for this question" to emit `"shuffle": 0`
 - Pick a file name and download as **`.json`** or **`.txt`**
+
+Questions are paginated 10 per page; the file name and download/save controls stay visible below regardless of the page.
 
 Imported files are validated against the schema above before loading; if you already have questions in progress, the editor asks before replacing them. The downloaded file matches the same JSON schema, so you can immediately upload it back to take the quiz. Both extensions contain identical content; pick whichever your tooling prefers.
 
