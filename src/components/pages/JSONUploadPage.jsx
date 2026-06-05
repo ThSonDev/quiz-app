@@ -1,6 +1,16 @@
 import { useState } from 'react';
 import { validateQuizData, processQuizData } from '../../utils/utils.js';
+import {
+  loadLibrary,
+  saveLibrary,
+  upsertQuiz,
+  removeQuiz,
+  toggleBookmark,
+  sortLibrary,
+  hashQuiz,
+} from '../../utils/storage.js';
 import { useTheme } from '../../contexts/useTheme';
+import QuizLibraryPane from '../ui/QuizLibraryPane';
 
 const JSONUploadPage = ({
   setView,
@@ -11,6 +21,7 @@ const JSONUploadPage = ({
   setCurrentQuestion,
   uploadedFileInfo,
   setUploadedFileInfo,
+  setEditingQuiz,
 }) => {
   const { isDarkMode, classes } = useTheme();
   const [error, setError] = useState('');
@@ -18,6 +29,10 @@ const JSONUploadPage = ({
   const [shuffleOptions, setShuffleOptions] = useState(false);
   const [quizSize, setQuizSize] = useState('100');
   const [quizSizeMode, setQuizSizeMode] = useState('percentage');
+  // Saved-quiz library (localStorage). Read once on mount; the page remounts
+  // each time the user returns to upload, so it always reflects fresh storage.
+  const [library, setLibrary] = useState(() => loadLibrary());
+  const [showLibrary, setShowLibrary] = useState(false);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -49,6 +64,11 @@ const JSONUploadPage = ({
         });
         setOriginalQuizData(data);
         setError('');
+
+        // Persist to the library (dedupes identical content by bumping time).
+        const updated = upsertQuiz(loadLibrary(), { rawData: data, name: file.name });
+        saveLibrary(updated);
+        setLibrary(updated);
       } catch {
         setError('Invalid JSON file format');
         setUploadedFileInfo(null);
@@ -63,6 +83,44 @@ const JSONUploadPage = ({
     setError('');
     const fileInput = document.querySelector('input[type="file"]');
     if (fileInput) fileInput.value = '';
+  };
+
+  // Load a saved quiz into the normal flow: it populates uploadedFileInfo so the
+  // existing settings card + Start button work unchanged (no File object needed).
+  const selectFromLibrary = (entry) => {
+    setUploadedFileInfo({
+      name: entry.name,
+      questionCount: entry.questionCount,
+      rawData: entry.rawData,
+    });
+    setOriginalQuizData(entry.rawData);
+    setError('');
+    setShowLibrary(false);
+  };
+
+  const handleToggleBookmark = (id) => {
+    const updated = toggleBookmark(loadLibrary(), id);
+    saveLibrary(updated);
+    setLibrary(updated);
+  };
+
+  const handleRemoveFromLibrary = (id) => {
+    const updated = removeQuiz(loadLibrary(), id);
+    saveLibrary(updated);
+    setLibrary(updated);
+  };
+
+  // Open the loaded quiz in the creator for editing (reuses view === 'create').
+  const editCurrentQuiz = () => {
+    const id = hashQuiz(uploadedFileInfo.rawData);
+    const entry = library.find((e) => e.id === id);
+    setEditingQuiz({
+      id,
+      name: uploadedFileInfo.name,
+      bookmarked: entry?.bookmarked ?? false,
+      rawData: uploadedFileInfo.rawData,
+    });
+    setView('create');
   };
 
   const handleQuizSizeChange = (e) => {
@@ -227,6 +285,23 @@ const JSONUploadPage = ({
             </div>
           </div>
 
+          {library.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowLibrary(true)}
+              className={`w-full flex items-center justify-between px-4 py-3 ${classes.inputBgPlain} border-2 rounded-lg hover:border-indigo-500 transition-colors`}
+              title="Choose a previously uploaded quiz"
+            >
+              <span className={`font-medium ${classes.textColor}`}>
+                Choose a Saved Quiz
+                <span className={`ml-2 text-sm ${classes.mutedText}`}>({library.length})</span>
+              </span>
+              <svg className={`w-5 h-5 ${classes.mutedText}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+
           {!uploadedFileInfo ? (
             <label className="block">
               <div className={`border-2 border-dashed ${isDarkMode ? 'border-indigo-500' : 'border-indigo-300'} rounded-lg p-8 text-center hover:border-indigo-500 transition-colors cursor-pointer`}>
@@ -241,22 +316,38 @@ const JSONUploadPage = ({
             </label>
           ) : (
             <div className={`relative border-2 ${isDarkMode ? 'border-green-600 bg-green-900' : 'border-green-300 bg-green-50'} rounded-lg p-6`}>
-              <button
-                onClick={handleRemoveFile}
-                className={`absolute top-2 right-2 p-1.5 rounded-full transition-all ${
-                  isDarkMode
-                    ? 'hover:bg-red-800 text-red-400 hover:text-red-300'
-                    : 'hover:bg-red-100 text-red-600 hover:text-red-700'
-                }`}
-                aria-label="Remove file"
-                title="Remove file"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="absolute top-2 right-2 flex items-center gap-1">
+                <button
+                  onClick={editCurrentQuiz}
+                  className={`p-1.5 rounded-full transition-all ${
+                    isDarkMode
+                      ? 'hover:bg-indigo-800 text-indigo-300 hover:text-indigo-200'
+                      : 'hover:bg-indigo-100 text-indigo-600 hover:text-indigo-700'
+                  }`}
+                  aria-label="Edit quiz"
+                  title="Edit questions"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleRemoveFile}
+                  className={`p-1.5 rounded-full transition-all ${
+                    isDarkMode
+                      ? 'hover:bg-red-800 text-red-400 hover:text-red-300'
+                      : 'hover:bg-red-100 text-red-600 hover:text-red-700'
+                  }`}
+                  aria-label="Remove file"
+                  title="Remove file"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
 
-              <div className="flex items-start gap-4 pr-8">
+              <div className="flex items-start gap-4 pr-16">
                 <div className={`${isDarkMode ? 'bg-green-800' : 'bg-green-100'} p-3 rounded-lg flex-shrink-0`}>
                   <svg className={`w-8 h-8 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -318,7 +409,10 @@ const JSONUploadPage = ({
         <div className={`mt-6 p-4 ${classes.inputBgPlain} rounded-lg`}>
           <p className={`text-sm ${classes.mutedText} mb-3 text-center`}>Don't have a quiz file yet?</p>
           <button
-            onClick={() => setView('create')}
+            onClick={() => {
+              setEditingQuiz(null);
+              setView('create');
+            }}
             className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-all"
             title="Create your own quiz"
           >
@@ -337,6 +431,16 @@ const JSONUploadPage = ({
           </a>
         </div>
       </div>
+
+      {showLibrary && (
+        <QuizLibraryPane
+          entries={sortLibrary(library)}
+          onSelect={selectFromLibrary}
+          onToggleBookmark={handleToggleBookmark}
+          onRemove={handleRemoveFromLibrary}
+          onClose={() => setShowLibrary(false)}
+        />
+      )}
     </div>
   );
 };

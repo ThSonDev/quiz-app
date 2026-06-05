@@ -6,6 +6,7 @@ import ReviewPage from './components/pages/ReviewPage';
 import QuizCreatorPage from './components/pages/QuizCreatorPage';
 import ThemeToggle from './components/ui/ThemeToggle';
 import { useTheme } from './contexts/useTheme';
+import { loadLibrary, saveLibrary, replaceQuiz } from './utils/storage';
 
 const App = () => {
   const { classes } = useTheme();
@@ -30,6 +31,27 @@ const App = () => {
     quizSizeMode: 'percentage',
   });
 
+  // The saved-library quiz currently open in the creator for editing, or null
+  // when the creator is building a new quiz. Shape: { id, name, bookmarked, rawData }.
+  const [editingQuiz, setEditingQuiz] = useState(null);
+
+  // Persist an edited quiz back to the library (new content gets a new id; the
+  // old entry is replaced, time bumped, bookmark carried over), reload it into
+  // the upload card, and return to the upload page.
+  const saveEditedQuiz = (builtData, name) => {
+    const entries = replaceQuiz(
+      loadLibrary(),
+      editingQuiz.id,
+      { rawData: builtData, name },
+      editingQuiz.bookmarked,
+    );
+    saveLibrary(entries);
+    setUploadedFileInfo({ name, questionCount: builtData.questions.length, rawData: builtData });
+    setOriginalQuizData(builtData);
+    setEditingQuiz(null);
+    setView('upload');
+  };
+
   return (
     <div className={`min-h-screen transition-colors duration-300 ${classes.pageGradient}`}>
       <div className="fixed top-4 right-4 z-50">
@@ -46,6 +68,7 @@ const App = () => {
           setCurrentQuestion={setCurrentQuestion}
           uploadedFileInfo={uploadedFileInfo}
           setUploadedFileInfo={setUploadedFileInfo}
+          setEditingQuiz={setEditingQuiz}
         />
       )}
 
@@ -81,7 +104,14 @@ const App = () => {
         />
       )}
 
-      {view === 'create' && <QuizCreatorPage setView={setView} />}
+      {view === 'create' && (
+        <QuizCreatorPage
+          setView={setView}
+          editingQuiz={editingQuiz}
+          setEditingQuiz={setEditingQuiz}
+          onSaveEdit={saveEditedQuiz}
+        />
+      )}
     </div>
   );
 };

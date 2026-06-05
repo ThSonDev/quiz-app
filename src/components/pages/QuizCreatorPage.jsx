@@ -5,10 +5,18 @@ import { downloadQuizFile, validateQuizData } from '../../utils/utils';
 import { useTheme } from '../../contexts/useTheme';
 import { buildQuizPayload, emptyQuestion, quizToCreatorQuestions } from '../../utils/quizCreator';
 
-const QuizCreatorPage = ({ setView }) => {
+const stripExtension = (name) => name.replace(/\.(json|txt)$/i, '');
+
+const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEdit }) => {
   const { isDarkMode, classes } = useTheme();
-  const [questions, setQuestions] = useState([emptyQuestion(), emptyQuestion()]);
-  const [filename, setFilename] = useState('my-quiz');
+  const isEditing = Boolean(editingQuiz);
+  // In edit mode, seed the editor from the saved quiz; otherwise start blank.
+  const [questions, setQuestions] = useState(() =>
+    editingQuiz ? quizToCreatorQuestions(editingQuiz.rawData) : [emptyQuestion(), emptyQuestion()]
+  );
+  const [filename, setFilename] = useState(() =>
+    editingQuiz ? stripExtension(editingQuiz.name) : 'my-quiz'
+  );
   const [error, setError] = useState('');
   const [showExitModal, setShowExitModal] = useState(false);
   // Questions parsed from an upload, held until the user confirms replacing
@@ -16,7 +24,16 @@ const QuizCreatorPage = ({ setView }) => {
   const [pendingImport, setPendingImport] = useState(null);
   const importInputRef = useRef(null);
 
+  // Paginate the question editors 10 per page; the actions box below stays put.
+  const PER_PAGE = 10;
+  const [page, setPage] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(questions.length / PER_PAGE));
+  // Clamp so removing questions on the last page can't strand us past the end.
+  const currentPage = Math.min(page, totalPages - 1);
+
   const addQuestion = () => {
+    // Jump to the page the new (appended) question lands on.
+    setPage(Math.floor(questions.length / PER_PAGE));
     setQuestions((prev) => [...prev, emptyQuestion()]);
   };
 
@@ -37,6 +54,17 @@ const QuizCreatorPage = ({ setView }) => {
     }
     setError('');
     downloadQuizFile(result.data, filename, extension);
+  };
+
+  // Save edits back to the library (App handles persistence + navigation).
+  const handleSaveEdit = () => {
+    const result = buildQuizPayload(questions);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setError('');
+    onSaveEdit(result.data, filename.trim() || editingQuiz.name);
   };
 
   const hasContent = questions.some(
@@ -77,11 +105,15 @@ const QuizCreatorPage = ({ setView }) => {
 
   const requestExit = () => {
     if (hasContent) setShowExitModal(true);
-    else setView('upload');
+    else {
+      setEditingQuiz(null);
+      setView('upload');
+    }
   };
 
   const confirmExit = () => {
     setShowExitModal(false);
+    setEditingQuiz(null);
     setView('upload');
   };
 
@@ -99,44 +131,80 @@ const QuizCreatorPage = ({ setView }) => {
           >
             Back to Upload
           </button>
-          <button
-            type="button"
-            onClick={() => importInputRef.current?.click()}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-all"
-            title="Upload an existing quiz to edit"
-          >
-            Upload Your Quiz
-          </button>
-          <input
-            ref={importInputRef}
-            type="file"
-            accept=".json,.txt"
-            onChange={handleImport}
-            className="hidden"
-          />
+          {!isEditing && (
+            <>
+              <button
+                type="button"
+                onClick={() => importInputRef.current?.click()}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-all"
+                title="Upload an existing quiz to edit"
+              >
+                Upload Your Quiz
+              </button>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".json,.txt"
+                onChange={handleImport}
+                className="hidden"
+              />
+            </>
+          )}
         </div>
 
         <div className={`${classes.cardBg} rounded-2xl shadow-2xl p-6 sm:p-8`}>
           <div className="mb-6">
-            <h1 className={`text-3xl font-bold ${classes.textColor} mb-2`}>Quiz Creator</h1>
+            <h1 className={`text-3xl font-bold ${classes.textColor} mb-2`}>
+              {isEditing ? 'Edit Quiz' : 'Quiz Creator'}
+            </h1>
             <p className={classes.mutedText}>
-              Build a quiz from scratch, or upload an existing JSON or TXT quiz to add,
-              edit, and remove questions. Download the result and upload it back from the
-              home page to take the quiz.
+              {isEditing
+                ? 'Add, edit, or remove questions, then save your changes back to the saved quiz.'
+                : 'Build a quiz from scratch, or upload an existing JSON or TXT quiz to add, edit, and remove questions. Download the result and upload it back from the home page to take the quiz.'}
             </p>
           </div>
 
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mb-5">
+              <button
+                type="button"
+                onClick={() => setPage(currentPage - 1)}
+                disabled={currentPage === 0}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${classes.secondaryBtn} disabled:opacity-40 disabled:cursor-not-allowed`}
+              >
+                Previous
+              </button>
+              <span className={`text-sm font-medium ${classes.mutedText}`}>
+                Page {currentPage + 1} of {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage(currentPage + 1)}
+                disabled={currentPage === totalPages - 1}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${classes.secondaryBtn} disabled:opacity-40 disabled:cursor-not-allowed`}
+              >
+                Next
+              </button>
+            </div>
+          )}
+
           <div className="space-y-5">
-            {questions.map((q, idx) => (
-              <QuestionEditor
-                key={idx}
-                question={q}
-                index={idx}
-                onChange={(updated) => updateQuestion(idx, updated)}
-                onRemove={() => removeQuestion(idx)}
-                canRemove={questions.length > 1}
-              />
-            ))}
+            {questions
+              .slice(currentPage * PER_PAGE, currentPage * PER_PAGE + PER_PAGE)
+              .map((q, i) => {
+                // Absolute index into `questions` so edits/removes hit the right one.
+                const idx = currentPage * PER_PAGE + i;
+                return (
+                  <QuestionEditor
+                    key={idx}
+                    question={q}
+                    index={idx}
+                    onChange={(updated) => updateQuestion(idx, updated)}
+                    onRemove={() => removeQuestion(idx)}
+                    canRemove={questions.length > 1}
+                  />
+                );
+              })}
           </div>
 
           <button
@@ -147,7 +215,42 @@ const QuizCreatorPage = ({ setView }) => {
             Add Question
           </button>
 
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 mt-6">
+              <button
+                type="button"
+                onClick={() => setPage(currentPage - 1)}
+                disabled={currentPage === 0}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${classes.secondaryBtn} disabled:opacity-40 disabled:cursor-not-allowed`}
+              >
+                Previous
+              </button>
+              <span className={`text-sm font-medium ${classes.mutedText}`}>
+                Page {currentPage + 1} of {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage(currentPage + 1)}
+                disabled={currentPage === totalPages - 1}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${classes.secondaryBtn} disabled:opacity-40 disabled:cursor-not-allowed`}
+              >
+                Next
+              </button>
+            </div>
+          )}
+
           <div className={`mt-8 p-5 ${classes.innerBg} rounded-xl space-y-4`}>
+            {isEditing && (
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                className="w-full px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all"
+                title="Save changes and return to upload"
+              >
+                Save Changes
+              </button>
+            )}
+
             <div>
               <label
                 htmlFor="quizFilename"
@@ -165,28 +268,32 @@ const QuizCreatorPage = ({ setView }) => {
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                type="button"
-                onClick={() => handleDownload('json')}
-                className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all"
-                title="Download as .json"
-              >
-                Download as .json
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDownload('txt')}
-                className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-all"
-                title="Download as .txt"
-              >
-                Download as .txt
-              </button>
-            </div>
+            {!isEditing && (
+              <>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleDownload('json')}
+                    className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all"
+                    title="Download as .json"
+                  >
+                    Download as .json
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDownload('txt')}
+                    className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-all"
+                    title="Download as .txt"
+                  >
+                    Download as .txt
+                  </button>
+                </div>
 
-            <p className={`text-xs ${classes.mutedText}`}>
-              Both formats contain the same JSON content. Pick whichever extension you prefer.
-            </p>
+                <p className={`text-xs ${classes.mutedText}`}>
+                  Both formats contain the same JSON content. Pick whichever extension you prefer.
+                </p>
+              </>
+            )}
 
             {error && (
               <div className={`${
