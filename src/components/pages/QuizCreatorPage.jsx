@@ -71,9 +71,15 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
     onSaveEdit(result.data, filename.trim() || editingQuiz.name);
   };
 
-  const hasContent = questions.some(
-    (q) => q.question.trim() || q.options.some((o) => o.text.trim()) || q.explanation.trim()
-  );
+  // Snapshot the editor's initial contents on first render so we can tell
+  // whether the user has actually changed anything. In edit mode the form
+  // starts pre-filled, so a plain "has content" check is always true and can't
+  // distinguish unsaved edits from an untouched quiz.
+  const initialSnapshot = useRef(null);
+  if (initialSnapshot.current === null) {
+    initialSnapshot.current = JSON.stringify({ questions, filename });
+  }
+  const isDirty = JSON.stringify({ questions, filename }) !== initialSnapshot.current;
 
   const handleImport = async (e) => {
     const file = e.target.files[0];
@@ -88,8 +94,8 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
     }
     setError('');
     const imported = quizToCreatorQuestions(data);
-    // Guard against silently discarding in-progress work.
-    if (hasContent) setPendingImport(imported);
+    // Guard against silently discarding unsaved changes.
+    if (isDirty) setPendingImport(imported);
     else setQuestions(imported);
   };
 
@@ -99,7 +105,7 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
   };
 
   const requestExit = () => {
-    if (hasContent) setShowExitModal(true);
+    if (isDirty) setShowExitModal(true);
     else {
       setEditingQuiz(null);
       setView('upload');
