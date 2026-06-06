@@ -71,6 +71,11 @@ quiz-app/
 │   │   │   ├── ReviewPage.jsx        # Per-question review
 │   │   │   └── QuizCreatorPage.jsx   # In-browser quiz editor
 │   │   └── ui/
+│   │       ├── icons.jsx             # Shared named inline-SVG icon set
+│   │       ├── Button.jsx            # Shared action button with variants
+│   │       ├── ToggleSwitch.jsx      # Switch + labelled SettingToggle row
+│   │       ├── ErrorBanner.jsx       # Shared red message banner
+│   │       ├── Pagination.jsx        # Prev / Page X of Y / Next control
 │   │       ├── ThemeToggle.jsx       # Dark/light toggle
 │   │       ├── QuizLibraryPane.jsx   # Slide-over list of saved quizzes
 │   │       ├── Modal.jsx             # Generic centered confirm modal
@@ -79,8 +84,10 @@ quiz-app/
 │   │       ├── Explanation.jsx       # Shared explanation panel
 │   │       ├── QuestionEditor.jsx    # One question card in the creator
 │   │       └── OptionEditor.jsx      # One option row in the creator
+│   ├── hooks/
+│   │   └── useQuizLibrary.js         # Saved-quiz library state + persistence
 │   └── utils/
-│       ├── utils.js                  # Shuffle, validation, scoring, download
+│       ├── utils.js                  # Shuffle, validation, scoring, results, download
 │       ├── quizCreator.js            # Creator <-> upload shape converters
 │       └── storage.js                # Saved-quiz library (localStorage)
 ├── tests/
