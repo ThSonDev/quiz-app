@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { processQuizData, isMultiChoice, summarizeResults } from '../../utils/utils';
 import { useTheme } from '../../contexts/useTheme';
 import Modal from '../ui/Modal';
@@ -17,6 +17,12 @@ const ResultPage = ({
 }) => {
   const { isDarkMode, classes } = useTheme();
   const [showRetryModal, setShowRetryModal] = useState(false);
+
+  // Landing on the results should start at the top, not inherit the quiz
+  // page's scroll position.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const hasMultiChoice = quizData.questions.some(isMultiChoice);
 

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   calculateQuestionScore,
   isCorrectOption,
@@ -10,6 +11,11 @@ import Explanation from '../ui/Explanation';
 const ReviewPage = ({ quizData, answers, setView }) => {
   const { isDarkMode, classes } = useTheme();
   const maxPointPerQuestion = 10 / quizData.questions.length;
+
+  // Open the review at the top, not at the results page's scroll position.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const badgeFor = (rawScore) => {
     let cls = 'px-3 py-1 rounded-full text-sm font-bold ml-2 ';

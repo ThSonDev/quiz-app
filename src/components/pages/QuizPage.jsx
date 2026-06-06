@@ -28,6 +28,12 @@ const QuizPage = ({
   const totalQuestions = quizData.questions.length;
   const multiChoice = isMultiChoice(question);
 
+  // Entering the quiz should start at the top, not inherit the previous
+  // page's scroll position.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Reset the in-progress multi-choice picks whenever the user navigates.
   useEffect(() => {
     setMultiSelection([]);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { processQuizData, readQuizFile } from '../../utils/utils.js';
 import { sortLibrary, hashQuiz } from '../../utils/storage.js';
 import { useQuizLibrary } from '../../hooks/useQuizLibrary';
@@ -37,6 +37,12 @@ const JSONUploadPage = ({
   // each return to upload, so it always reflects fresh storage.
   const { library, saveQuiz, removeFromLibrary, toggleBookmark } = useQuizLibrary();
   const [showLibrary, setShowLibrary] = useState(false);
+
+  // Returning to upload should start at the top, not inherit the previous
+  // page's scroll position.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
