@@ -85,7 +85,8 @@ quiz-app/
 │   │       ├── QuestionEditor.jsx    # One question card in the creator
 │   │       └── OptionEditor.jsx      # One option row in the creator
 │   ├── hooks/
-│   │   └── useQuizLibrary.js         # Saved-quiz library state + persistence
+│   │   ├── useQuizLibrary.js         # Saved-quiz library state + persistence
+│   │   └── useBackGuard.js           # Intercept browser/mobile Back action
 │   └── utils/
 │       ├── utils.js                  # Shuffle, validation, scoring, results, download
 │       ├── quizCreator.js            # Creator <-> upload shape converters
