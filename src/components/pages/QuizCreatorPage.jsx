@@ -1,7 +1,10 @@
 import { useRef, useState } from 'react';
 import QuestionEditor from '../ui/QuestionEditor';
 import Modal from '../ui/Modal';
-import { downloadQuizFile, validateQuizData } from '../../utils/utils';
+import Button from '../ui/Button';
+import ErrorBanner from '../ui/ErrorBanner';
+import Pagination from '../ui/Pagination';
+import { downloadQuizFile, readQuizFile } from '../../utils/utils';
 import { useTheme } from '../../contexts/useTheme';
 import { buildQuizPayload, emptyQuestion, quizToCreatorQuestions } from '../../utils/quizCreator';
 
@@ -71,31 +74,22 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
     (q) => q.question.trim() || q.options.some((o) => o.text.trim()) || q.explanation.trim()
   );
 
-  const handleImport = (e) => {
+  const handleImport = async (e) => {
     const file = e.target.files[0];
     // Reset the input so re-selecting the same file fires onChange again.
     e.target.value = '';
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const data = JSON.parse(event.target.result);
-        const validationError = validateQuizData(data);
-        if (validationError) {
-          setError(validationError);
-          return;
-        }
-        setError('');
-        const imported = quizToCreatorQuestions(data);
-        // Guard against silently discarding in-progress work.
-        if (hasContent) setPendingImport(imported);
-        else setQuestions(imported);
-      } catch {
-        setError('Invalid JSON file format');
-      }
-    };
-    reader.readAsText(file);
+    const { data, error: parseError } = await readQuizFile(file);
+    if (parseError) {
+      setError(parseError);
+      return;
+    }
+    setError('');
+    const imported = quizToCreatorQuestions(data);
+    // Guard against silently discarding in-progress work.
+    if (hasContent) setPendingImport(imported);
+    else setQuestions(imported);
   };
 
   const confirmImport = () => {
@@ -164,29 +158,12 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
             </p>
           </div>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mb-5">
-              <button
-                type="button"
-                onClick={() => setPage(currentPage - 1)}
-                disabled={currentPage === 0}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${classes.secondaryBtn} disabled:opacity-40 disabled:cursor-not-allowed`}
-              >
-                Previous
-              </button>
-              <span className={`text-sm font-medium ${classes.mutedText}`}>
-                Page {currentPage + 1} of {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPage(currentPage + 1)}
-                disabled={currentPage === totalPages - 1}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${classes.secondaryBtn} disabled:opacity-40 disabled:cursor-not-allowed`}
-              >
-                Next
-              </button>
-            </div>
-          )}
+          <Pagination
+            page={currentPage}
+            totalPages={totalPages}
+            onChange={setPage}
+            className="mb-5"
+          />
 
           <div className="space-y-5">
             {questions
@@ -207,48 +184,28 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
               })}
           </div>
 
-          <button
-            type="button"
-            onClick={addQuestion}
-            className="w-full mt-6 px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all"
-          >
+          <Button type="button" onClick={addQuestion} className="w-full mt-6">
             Add Question
-          </button>
+          </Button>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-4 mt-6">
-              <button
-                type="button"
-                onClick={() => setPage(currentPage - 1)}
-                disabled={currentPage === 0}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${classes.secondaryBtn} disabled:opacity-40 disabled:cursor-not-allowed`}
-              >
-                Previous
-              </button>
-              <span className={`text-sm font-medium ${classes.mutedText}`}>
-                Page {currentPage + 1} of {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPage(currentPage + 1)}
-                disabled={currentPage === totalPages - 1}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${classes.secondaryBtn} disabled:opacity-40 disabled:cursor-not-allowed`}
-              >
-                Next
-              </button>
-            </div>
-          )}
+          <Pagination
+            page={currentPage}
+            totalPages={totalPages}
+            onChange={setPage}
+            className="mt-6"
+          />
 
           <div className={`mt-8 p-5 ${classes.innerBg} rounded-xl space-y-4`}>
             {isEditing && (
-              <button
+              <Button
                 type="button"
+                variant="success"
                 onClick={handleSaveEdit}
-                className="w-full px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all"
+                className="w-full font-semibold"
                 title="Save changes and return to upload"
               >
                 Save Changes
-              </button>
+              </Button>
             )}
 
             <div>
@@ -271,22 +228,23 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
             {!isEditing && (
               <>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <button
+                  <Button
                     type="button"
                     onClick={() => handleDownload('json')}
-                    className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all"
+                    className="flex-1"
                     title="Download as .json"
                   >
                     Download as .json
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="purple"
                     onClick={() => handleDownload('txt')}
-                    className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-all"
+                    className="flex-1"
                     title="Download as .txt"
                   >
                     Download as .txt
-                  </button>
+                  </Button>
                 </div>
 
                 <p className={`text-xs ${classes.mutedText}`}>
@@ -295,13 +253,7 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
               </>
             )}
 
-            {error && (
-              <div className={`${
-                isDarkMode ? 'bg-red-900 border-red-700 text-red-300' : 'bg-red-50 border-red-200 text-red-700'
-              } border px-4 py-3 rounded-lg`}>
-                <p className="text-sm font-medium">{error}</p>
-              </div>
-            )}
+            <ErrorBanner>{error}</ErrorBanner>
           </div>
         </div>
       </div>
@@ -311,20 +263,17 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
           title="Discard quiz?"
           description="Your unsaved quiz will be lost. Download it first if you want to keep it."
         >
-          <button
-            type="button"
-            onClick={confirmExit}
-            className="w-full px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-all"
-          >
+          <Button type="button" variant="danger" onClick={confirmExit} className="w-full">
             Yes, Discard
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="secondary"
             onClick={() => setShowExitModal(false)}
-            className={`w-full px-6 py-3 ${classes.secondaryBtn} rounded-lg font-medium transition-all`}
+            className="w-full"
           >
             Cancel
-          </button>
+          </Button>
         </Modal>
       )}
 
@@ -333,20 +282,17 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
           title="Replace current quiz?"
           description="Uploading will replace the questions you have now. This cannot be undone."
         >
-          <button
-            type="button"
-            onClick={confirmImport}
-            className="w-full px-6 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-all"
-          >
+          <Button type="button" variant="emerald" onClick={confirmImport} className="w-full">
             Replace
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="secondary"
             onClick={() => setPendingImport(null)}
-            className={`w-full px-6 py-3 ${classes.secondaryBtn} rounded-lg font-medium transition-all`}
+            className="w-full"
           >
             Cancel
-          </button>
+          </Button>
         </Modal>
       )}
     </div>

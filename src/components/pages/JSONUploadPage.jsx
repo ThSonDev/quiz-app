@@ -1,16 +1,20 @@
 import { useState } from 'react';
-import { validateQuizData, processQuizData } from '../../utils/utils.js';
-import {
-  loadLibrary,
-  saveLibrary,
-  upsertQuiz,
-  removeQuiz,
-  toggleBookmark,
-  sortLibrary,
-  hashQuiz,
-} from '../../utils/storage.js';
+import { processQuizData, readQuizFile } from '../../utils/utils.js';
+import { sortLibrary, hashQuiz } from '../../utils/storage.js';
+import { useQuizLibrary } from '../../hooks/useQuizLibrary';
 import { useTheme } from '../../contexts/useTheme';
 import QuizLibraryPane from '../ui/QuizLibraryPane';
+import Button from '../ui/Button';
+import ErrorBanner from '../ui/ErrorBanner';
+import { SettingToggle } from '../ui/ToggleSwitch';
+import {
+  IconUpload,
+  IconChevronRight,
+  IconPencil,
+  IconClose,
+  IconDocument,
+  IconArrowRight,
+} from '../ui/icons';
 
 const JSONUploadPage = ({
   setView,
@@ -29,52 +33,38 @@ const JSONUploadPage = ({
   const [shuffleOptions, setShuffleOptions] = useState(false);
   const [quizSize, setQuizSize] = useState('100');
   const [quizSizeMode, setQuizSizeMode] = useState('percentage');
-  // Saved-quiz library (localStorage). Read once on mount; the page remounts
-  // each time the user returns to upload, so it always reflects fresh storage.
-  const [library, setLibrary] = useState(() => loadLibrary());
+  // Saved-quiz library (localStorage), owned by the hook. The page remounts on
+  // each return to upload, so it always reflects fresh storage.
+  const { library, saveQuiz, removeFromLibrary, toggleBookmark } = useQuizLibrary();
   const [showLibrary, setShowLibrary] = useState(false);
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const data = JSON.parse(event.target.result);
-        const validationError = validateQuizData(data);
+    const { data, error: parseError } = await readQuizFile(file);
+    if (parseError) {
+      setError(parseError);
+      setUploadedFileInfo(null);
+      return;
+    }
+    if (data.questions.length < 2) {
+      setError('Quiz must contain at least 2 questions');
+      setUploadedFileInfo(null);
+      return;
+    }
 
-        if (validationError) {
-          setError(validationError);
-          setUploadedFileInfo(null);
-          return;
-        }
+    setUploadedFileInfo({
+      file: file,
+      name: file.name,
+      questionCount: data.questions.length,
+      rawData: data,
+    });
+    setOriginalQuizData(data);
+    setError('');
 
-        if (data.questions.length < 2) {
-          setError('Quiz must contain at least 2 questions');
-          setUploadedFileInfo(null);
-          return;
-        }
-
-        setUploadedFileInfo({
-          file: file,
-          name: file.name,
-          questionCount: data.questions.length,
-          rawData: data,
-        });
-        setOriginalQuizData(data);
-        setError('');
-
-        // Persist to the library (dedupes identical content by bumping time).
-        const updated = upsertQuiz(loadLibrary(), { rawData: data, name: file.name });
-        saveLibrary(updated);
-        setLibrary(updated);
-      } catch {
-        setError('Invalid JSON file format');
-        setUploadedFileInfo(null);
-      }
-    };
-    reader.readAsText(file);
+    // Persist to the library (dedupes identical content by bumping time).
+    saveQuiz(data, file.name);
   };
 
   const handleRemoveFile = () => {
@@ -96,18 +86,6 @@ const JSONUploadPage = ({
     setOriginalQuizData(entry.rawData);
     setError('');
     setShowLibrary(false);
-  };
-
-  const handleToggleBookmark = (id) => {
-    const updated = toggleBookmark(loadLibrary(), id);
-    saveLibrary(updated);
-    setLibrary(updated);
-  };
-
-  const handleRemoveFromLibrary = (id) => {
-    const updated = removeQuiz(loadLibrary(), id);
-    saveLibrary(updated);
-    setLibrary(updated);
   };
 
   // Open the loaded quiz in the creator for editing (reuses view === 'create').
@@ -186,9 +164,7 @@ const JSONUploadPage = ({
       <div className={`${classes.cardBg} rounded-2xl shadow-2xl p-8 max-w-md w-full transition-colors duration-300`}>
         <div className="text-center mb-8">
           <div className={`${isDarkMode ? 'bg-indigo-900' : 'bg-indigo-100'} w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4`}>
-            <svg className={`w-10 h-10 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
+            <IconUpload className={`w-10 h-10 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
           </div>
           <h1 className={`text-3xl font-bold ${classes.textColor} mb-2`}>Quiz Application</h1>
           <p className={classes.mutedText}>Upload a JSON or TXT file to start your quiz</p>
@@ -196,41 +172,18 @@ const JSONUploadPage = ({
 
         <div className="space-y-4">
           <div className="space-y-3">
-            <div className={`flex items-center justify-between p-4 ${classes.inputBgPlain} rounded-lg`}>
-              <div>
-                <p className={`font-medium ${classes.textColor}`}>Shuffle Questions</p>
-                <p className={`text-sm ${classes.mutedText}`}>Randomize question order</p>
-              </div>
-              <button
-                onClick={() => setShuffleQuestions(!shuffleQuestions)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  shuffleQuestions ? 'bg-indigo-600' : 'bg-gray-400'
-                }`}
-                title="Shuffle questions"
-              >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  shuffleQuestions ? 'translate-x-6' : 'translate-x-1'
-                }`} />
-              </button>
-            </div>
-
-            <div className={`flex items-center justify-between p-4 ${classes.inputBgPlain} rounded-lg`}>
-              <div>
-                <p className={`font-medium ${classes.textColor}`}>Shuffle Options</p>
-                <p className={`text-sm ${classes.mutedText}`}>Randomize answer choices</p>
-              </div>
-              <button
-                onClick={() => setShuffleOptions(!shuffleOptions)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  shuffleOptions ? 'bg-indigo-600' : 'bg-gray-400'
-                }`}
-                title="Shuffle options"
-              >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  shuffleOptions ? 'translate-x-6' : 'translate-x-1'
-                }`} />
-              </button>
-            </div>
+            <SettingToggle
+              label="Shuffle Questions"
+              description="Randomize question order"
+              checked={shuffleQuestions}
+              onChange={() => setShuffleQuestions(!shuffleQuestions)}
+            />
+            <SettingToggle
+              label="Shuffle Options"
+              description="Randomize answer choices"
+              checked={shuffleOptions}
+              onChange={() => setShuffleOptions(!shuffleOptions)}
+            />
           </div>
 
           <div className={`p-4 ${classes.inputBgPlain} rounded-lg space-y-3`}>
@@ -296,9 +249,7 @@ const JSONUploadPage = ({
                 Choose a Saved Quiz
                 <span className={`ml-2 text-sm ${classes.mutedText}`}>({library.length})</span>
               </span>
-              <svg className={`w-5 h-5 ${classes.mutedText}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              <IconChevronRight className={`w-5 h-5 ${classes.mutedText}`} />
             </button>
           )}
 
@@ -306,9 +257,7 @@ const JSONUploadPage = ({
             <label className="block">
               <div className={`border-2 border-dashed ${isDarkMode ? 'border-indigo-500' : 'border-indigo-300'} rounded-lg p-8 text-center hover:border-indigo-500 transition-colors cursor-pointer`}>
                 <input type="file" accept=".json,.txt" onChange={handleFileUpload} className="hidden" />
-                <svg className={`w-12 h-12 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-400'} mx-auto mb-2`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
+                <IconUpload className={`w-12 h-12 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-400'} mx-auto mb-2`} />
                 <p className={`${classes.textColor} font-medium`}>Click to upload JSON or TXT file</p>
                 <p className={`${classes.mutedText} text-sm mt-1`}>or drag and drop</p>
                 <p className={`${classes.mutedText} text-xs mt-2`}>Supported formats: .json, .txt</p>
@@ -327,9 +276,7 @@ const JSONUploadPage = ({
                   aria-label="Edit quiz"
                   title="Edit questions"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
+                  <IconPencil className="w-5 h-5" />
                 </button>
                 <button
                   onClick={handleRemoveFile}
@@ -341,17 +288,13 @@ const JSONUploadPage = ({
                   aria-label="Remove file"
                   title="Remove file"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <IconClose className="w-5 h-5" />
                 </button>
               </div>
 
               <div className="flex items-start gap-4 pr-16">
                 <div className={`${isDarkMode ? 'bg-green-800' : 'bg-green-100'} p-3 rounded-lg flex-shrink-0`}>
-                  <svg className={`w-8 h-8 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
+                  <IconDocument className={`w-8 h-8 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className={`font-semibold ${classes.textColor} mb-1 break-words`}>{uploadedFileInfo.name}</p>
@@ -359,26 +302,18 @@ const JSONUploadPage = ({
                 </div>
               </div>
 
-              <button
+              <Button
                 onClick={startQuiz}
-                className="w-full mt-4 px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+                className="w-full mt-4 flex items-center justify-center gap-2"
                 title="Start Quiz"
               >
                 Start Quiz
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </button>
+                <IconArrowRight className="w-5 h-5" />
+              </Button>
             </div>
           )}
 
-          {error && (
-            <div className={`${
-              isDarkMode ? 'bg-red-900 border-red-700 text-red-300' : 'bg-red-50 border-red-200 text-red-700'
-            } border px-4 py-3 rounded-lg`}>
-              <p className="text-sm font-medium">{error}</p>
-            </div>
-          )}
+          <ErrorBanner>{error}</ErrorBanner>
         </div>
 
         <div className={`mt-6 p-4 ${classes.inputBgPlain} rounded-lg`}>
@@ -408,16 +343,17 @@ const JSONUploadPage = ({
 
         <div className={`mt-6 p-4 ${classes.inputBgPlain} rounded-lg`}>
           <p className={`text-sm ${classes.mutedText} mb-3 text-center`}>Don't have a quiz file yet?</p>
-          <button
+          <Button
+            variant="purple"
             onClick={() => {
               setEditingQuiz(null);
               setView('create');
             }}
-            className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-all"
+            className="w-full"
             title="Create your own quiz"
           >
             Create Your Own Quiz
-          </button>
+          </Button>
         </div>
 
         <div className="mt-6 text-center">
@@ -436,8 +372,8 @@ const JSONUploadPage = ({
         <QuizLibraryPane
           entries={sortLibrary(library)}
           onSelect={selectFromLibrary}
-          onToggleBookmark={handleToggleBookmark}
-          onRemove={handleRemoveFromLibrary}
+          onToggleBookmark={toggleBookmark}
+          onRemove={removeFromLibrary}
           onClose={() => setShowLibrary(false)}
         />
       )}

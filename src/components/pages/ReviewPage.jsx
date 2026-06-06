@@ -1,4 +1,9 @@
-import { calculateQuestionScore } from '../../utils/utils';
+import {
+  calculateQuestionScore,
+  isCorrectOption,
+  isOptionChosen,
+  optionLabel,
+} from '../../utils/utils';
 import { useTheme } from '../../contexts/useTheme';
 import Explanation from '../ui/Explanation';
 
@@ -48,17 +53,13 @@ const ReviewPage = ({ quizData, answers, setView }) => {
 
                 <div className="space-y-2 mb-4">
                   {question.options.map((option, optIdx) => {
-                    const isCorrectOption = Array.isArray(question.correctAnswer)
-                      ? question.correctAnswer.includes(optIdx)
-                      : question.correctAnswer === optIdx;
-                    const isSelectedByUser = Array.isArray(userAnswer)
-                      ? userAnswer.includes(optIdx)
-                      : userAnswer === optIdx;
+                    const correct = isCorrectOption(question, optIdx);
+                    const selectedByUser = isOptionChosen(userAnswer, optIdx);
 
                     let optionClass = 'p-3 rounded-lg border-2 flex items-center justify-between ';
-                    if (isCorrectOption) {
+                    if (correct) {
                       optionClass += isDarkMode ? 'bg-green-900 border-green-600' : 'bg-green-50 border-green-500';
-                    } else if (isSelectedByUser && !isCorrectOption) {
+                    } else if (selectedByUser && !correct) {
                       optionClass += isDarkMode ? 'bg-red-900 border-red-600' : 'bg-red-50 border-red-500';
                     } else {
                       optionClass += isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200';
@@ -67,18 +68,18 @@ const ReviewPage = ({ quizData, answers, setView }) => {
                     return (
                       <div key={optIdx} className={optionClass}>
                         <div className="flex items-center">
-                          <span className="font-bold mr-2">{String.fromCharCode(65 + optIdx)}.</span>
+                          <span className="font-bold mr-2">{optionLabel(optIdx)}.</span>
                           <span>{option}</span>
                         </div>
                         <div className="flex items-center">
-                          {isCorrectOption && (
+                          {correct && (
                             <span className={`ml-2 font-medium text-sm flex items-center ${
                               isDarkMode ? 'text-green-400' : 'text-green-700'
                             }`}>
                               ✓ Correct
                             </span>
                           )}
-                          {isSelectedByUser && !isCorrectOption && (
+                          {selectedByUser && !correct && (
                             <span className={`ml-2 font-medium text-sm flex items-center ${
                               isDarkMode ? 'text-red-400' : 'text-red-700'
                             }`}>

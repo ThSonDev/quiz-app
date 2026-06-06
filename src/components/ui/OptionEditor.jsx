@@ -1,4 +1,5 @@
 import { useTheme } from '../../contexts/useTheme';
+import { optionLabel } from '../../utils/utils';
 
 const OptionEditor = ({
   option,
@@ -46,14 +47,14 @@ const OptionEditor = ({
       />
 
       <span className={`font-bold ${classes.mutedText} flex-shrink-0 w-6`}>
-        {String.fromCharCode(65 + index)}.
+        {optionLabel(index)}.
       </span>
 
       <input
         type="text"
         value={option.text}
         onChange={(e) => onChange({ ...option, text: e.target.value })}
-        placeholder={`Option ${String.fromCharCode(65 + index)}`}
+        placeholder={`Option ${optionLabel(index)}`}
         className={`flex-1 min-w-0 px-3 py-2 border ${inputBg} rounded-md focus:outline-none focus:border-indigo-500`}
       />
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTheme } from '../../contexts/useTheme';
+import { IconClose, IconStar, IconTrash } from './icons';
 
 const formatTime = (ts) =>
   new Date(ts).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
@@ -46,9 +47,7 @@ const QuizLibraryPane = ({ entries, onSelect, onToggleBookmark, onRemove, onClos
             aria-label="Close"
             title="Close"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <IconClose className="w-5 h-5" />
           </button>
         </div>
         <p className={`text-sm ${classes.mutedText} mb-5`}>
@@ -85,19 +84,7 @@ const QuizLibraryPane = ({ entries, onSelect, onToggleBookmark, onRemove, onClos
                       aria-label={e.bookmarked ? 'Remove bookmark' : 'Bookmark'}
                       title={e.bookmarked ? 'Remove bookmark' : 'Bookmark to top'}
                     >
-                      <svg
-                        className="w-5 h-5"
-                        fill={e.bookmarked ? 'currentColor' : 'none'}
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M11.48 3.5a.56.56 0 011.04 0l2.13 5.11a.56.56 0 00.47.35l5.52.44c.5.04.7.66.32.99l-4.2 3.6a.56.56 0 00-.18.56l1.28 5.38a.56.56 0 01-.84.61l-4.72-2.88a.56.56 0 00-.59 0l-4.72 2.88a.56.56 0 01-.84-.61l1.28-5.38a.56.56 0 00-.18-.56l-4.2-3.6a.56.56 0 01.32-.99l5.52-.44a.56.56 0 00.47-.35L11.48 3.5z"
-                        />
-                      </svg>
+                      <IconStar className="w-5 h-5" fill={e.bookmarked ? 'currentColor' : 'none'} />
                     </button>
                     <button
                       type="button"
@@ -110,9 +97,7 @@ const QuizLibraryPane = ({ entries, onSelect, onToggleBookmark, onRemove, onClos
                       aria-label="Remove"
                       title="Remove from library"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.87 12.14A2 2 0 0116.14 21H7.86a2 2 0 01-1.99-1.86L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3M4 7h16" />
-                      </svg>
+                      <IconTrash className="w-5 h-5" />
                     </button>
                   </div>
                 </div>

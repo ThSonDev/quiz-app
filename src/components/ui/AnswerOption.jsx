@@ -1,4 +1,6 @@
 import { useTheme } from '../../contexts/useTheme';
+import { optionLabel } from '../../utils/utils';
+import { IconCheck, IconClose } from './icons';
 
 // One answer button in the quiz runner. Styling depends on three flags:
 // isAnswered (locks the button + shows result colors), isSelected (user picked
@@ -43,7 +45,7 @@ const AnswerOption = ({ option, index, isSelected, isCorrectOption, isAnswered, 
     <button onClick={onClick} disabled={isAnswered} className={className}>
       <div className="flex items-center justify-between">
         <div className="flex items-center">
-          <span className="font-bold mr-3 opacity-70">{String.fromCharCode(65 + index)}.</span>
+          <span className="font-bold mr-3 opacity-70">{optionLabel(index)}.</span>
           <span>{option}</span>
         </div>
 
@@ -52,25 +54,19 @@ const AnswerOption = ({ option, index, isSelected, isCorrectOption, isAnswered, 
             {isSelected && isCorrectOption && (
               <div className="flex items-center text-green-600 dark:text-green-400">
                 <span className="mr-1">Correct</span>
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
+                <IconCheck className="w-6 h-6" />
               </div>
             )}
             {isSelected && !isCorrectOption && (
               <div className="flex items-center text-red-600 dark:text-red-400">
                 <span className="mr-1">Your answer</span>
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <IconClose className="w-6 h-6" strokeWidth={3} />
               </div>
             )}
             {!isSelected && isCorrectOption && (
               <div className="flex items-center text-red-500 dark:text-red-400">
                 <span className="mr-1">Unchosen</span>
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <IconClose className="w-6 h-6" strokeWidth={3} />
               </div>
             )}
           </div>

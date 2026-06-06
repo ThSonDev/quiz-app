@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/useTheme';
+import { isMultiChoice, isCorrectOption, isOptionChosen } from '../../utils/utils';
 import AnswerOption from '../ui/AnswerOption';
 import QuizProgressBar from '../ui/QuizProgressBar';
 import Explanation from '../ui/Explanation';
 import Modal from '../ui/Modal';
+import Button from '../ui/Button';
+import { IconReturnUpload, IconChevronLeft, IconArrowRight } from '../ui/icons';
 
 const QuizPage = ({
   quizData,
@@ -22,8 +25,7 @@ const QuizPage = ({
   const isAnswered = userAnswer !== undefined;
   const answeredCount = Object.keys(answers).length;
   const totalQuestions = quizData.questions.length;
-  const isMultiChoice =
-    Array.isArray(question.correctAnswer) && question.correctAnswer.length > 1;
+  const multiChoice = isMultiChoice(question);
 
   // Reset the in-progress multi-choice picks whenever the user navigates.
   useEffect(() => {
@@ -33,7 +35,7 @@ const QuizPage = ({
   const handleAnswerSelect = (optionIndex) => {
     if (isAnswered) return;
 
-    if (isMultiChoice) {
+    if (multiChoice) {
       setMultiSelection((prev) =>
         prev.includes(optionIndex)
           ? prev.filter((i) => i !== optionIndex)
@@ -68,16 +70,9 @@ const QuizPage = ({
   };
 
   const isOptionSelected = (idx) => {
-    if (isAnswered) {
-      return Array.isArray(userAnswer) ? userAnswer.includes(idx) : userAnswer === idx;
-    }
-    return isMultiChoice ? multiSelection.includes(idx) : false;
+    if (isAnswered) return isOptionChosen(userAnswer, idx);
+    return multiChoice ? multiSelection.includes(idx) : false;
   };
-
-  const isOptionCorrect = (idx) =>
-    Array.isArray(question.correctAnswer)
-      ? question.correctAnswer.includes(idx)
-      : question.correctAnswer === idx;
 
   return (
     <div className="min-h-screen p-4">
@@ -90,9 +85,7 @@ const QuizPage = ({
             } text-white rounded-lg font-medium hover:bg-gray-700 transition-all`}
             title="Return to Upload"
           >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
+            <IconReturnUpload className="w-4 h-4 mr-2" />
             Return to Upload
           </button>
         </div>
@@ -104,7 +97,7 @@ const QuizPage = ({
         />
 
         <div className={`${classes.cardBg} rounded-xl shadow-lg p-8`}>
-          {isMultiChoice && (
+          {multiChoice && (
             <p className={`text-sm font-bold uppercase tracking-wider mb-2 ${
               isDarkMode ? 'text-indigo-400' : 'text-indigo-600'
             }`}>
@@ -120,7 +113,7 @@ const QuizPage = ({
                 option={option}
                 index={idx}
                 isSelected={isOptionSelected(idx)}
-                isCorrectOption={isOptionCorrect(idx)}
+                isCorrectOption={isCorrectOption(question, idx)}
                 isAnswered={isAnswered}
                 onClick={() => handleAnswerSelect(idx)}
               />
@@ -142,13 +135,11 @@ const QuizPage = ({
               }`}
               title="Previous question"
             >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+              <IconChevronLeft className="w-5 h-5 mr-2" />
               Previous
             </button>
 
-            {isMultiChoice && !isAnswered ? (
+            {multiChoice && !isAnswered ? (
               <button
                 onClick={handleConfirmMulti}
                 disabled={multiSelection.length === 0}
@@ -173,9 +164,7 @@ const QuizPage = ({
                 {currentQuestion === totalQuestions - 1 && answeredCount === totalQuestions
                   ? 'Finish'
                   : 'Next'}
-                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
+                <IconArrowRight className="w-5 h-5 ml-2" />
               </button>
             )}
           </div>
@@ -187,20 +176,17 @@ const QuizPage = ({
           title="Exit Quiz?"
           description="Are you sure you want to exit? Your progress will be lost."
         >
-          <button
-            onClick={handleExit}
-            className="w-full px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-all"
-            title="Exit"
-          >
+          <Button variant="danger" onClick={handleExit} className="w-full" title="Exit">
             Yes, Exit Quiz
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
             onClick={() => setShowExitModal(false)}
-            className={`w-full px-6 py-3 ${classes.secondaryBtn} rounded-lg font-medium transition-all`}
+            className="w-full"
             title="Don't exit"
           >
             Cancel
-          </button>
+          </Button>
         </Modal>
       )}
     </div>

@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { processQuizData, calculateQuestionScore } from '../../utils/utils';
+import { processQuizData, isMultiChoice, summarizeResults } from '../../utils/utils';
 import { useTheme } from '../../contexts/useTheme';
 import Modal from '../ui/Modal';
+import Button from '../ui/Button';
+import { IconEye, IconRetry, IconClose } from '../ui/icons';
 
 const ResultPage = ({
   quizData,
@@ -16,37 +18,11 @@ const ResultPage = ({
   const { isDarkMode, classes } = useTheme();
   const [showRetryModal, setShowRetryModal] = useState(false);
 
-  const hasMultiChoice = quizData.questions.some(
-    (q) => Array.isArray(q.correctAnswer) && q.correctAnswer.length > 1
-  );
+  const hasMultiChoice = quizData.questions.some(isMultiChoice);
 
-  const calculateResults = () => {
-    let totalPoints = 0;
-    let correctCount = 0;
-    let incorrectCount = 0;
-    let partialCount = 0;
-
-    quizData.questions.forEach((q, idx) => {
-      const qScore = calculateQuestionScore(q, answers[idx]);
-      totalPoints += qScore;
-      if (qScore === 1) correctCount++;
-      else if (qScore === 0) incorrectCount++;
-      else partialCount++;
-    });
-
-    const totalQuestions = quizData.questions.length;
-    const finalScore = (totalPoints / totalQuestions) * 10;
-
-    return {
-      correctCount,
-      partialCount,
-      incorrectCount,
-      totalQuestions,
-      score: finalScore.toFixed(2),
-    };
-  };
-
-  const { correctCount, partialCount, incorrectCount, totalQuestions, score } = calculateResults();
+  const { correctCount, partialCount, incorrectCount, totalQuestions, score: rawScore } =
+    summarizeResults(quizData.questions, answers);
+  const score = rawScore.toFixed(2);
   const showPercentage = activeSettings.quizSizeMode === 'percentage' && activeSettings.quizSize < 100;
 
   const handleRetry = () => {
@@ -121,71 +97,52 @@ const ResultPage = ({
         </div>
 
         <div className="space-y-3">
-          <button
+          <Button
+            variant="blue"
             onClick={() => setView('review')}
-            className="w-full flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all"
+            className="w-full flex items-center justify-center"
             title="Review answers"
           >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
+            <IconEye className="w-5 h-5 mr-2" />
             Review Answers
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleRetry}
-            className="w-full flex items-center justify-center px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all"
+            className="w-full flex items-center justify-center"
             title="Retry Quiz"
           >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
+            <IconRetry className="w-5 h-5 mr-2" />
             Retry Quiz
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="neutral"
             onClick={handleFinish}
-            className={`w-full flex items-center justify-center px-6 py-3 ${
-              isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-600 hover:bg-gray-700'
-            } text-white rounded-lg font-medium transition-all`}
+            className="w-full flex items-center justify-center"
             title="Return to Upload"
           >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <IconClose className="w-5 h-5 mr-2" />
             Finish
-          </button>
+          </Button>
         </div>
       </div>
 
       {showRetryModal && (
         <Modal title="Retry Quiz" description="Choose how you want to retry the quiz:">
-          <button
-            onClick={retrySameLayout}
-            className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all"
-            title="Retry previous Quiz"
-          >
+          <Button onClick={retrySameLayout} className="w-full" title="Retry previous Quiz">
             Same Layout
             <span className="block text-sm text-indigo-200 mt-1">
               Keep the same question and option order
             </span>
-          </button>
-          <button
-            onClick={retryNewShuffle}
-            className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-all"
-            title="Do a new Quiz"
-          >
+          </Button>
+          <Button variant="purple" onClick={retryNewShuffle} className="w-full" title="Do a new Quiz">
             New Shuffle
             <span className="block text-sm text-purple-200 mt-1">
               Randomize questions and options again
             </span>
-          </button>
-          <button
-            onClick={() => setShowRetryModal(false)}
-            className={`w-full px-6 py-3 ${classes.secondaryBtn} rounded-lg font-medium transition-all`}
-            title="Return"
-          >
+          </Button>
+          <Button variant="secondary" onClick={() => setShowRetryModal(false)} className="w-full" title="Return">
             Cancel
-          </button>
+          </Button>
         </Modal>
       )}
     </div>

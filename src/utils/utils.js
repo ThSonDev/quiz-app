@@ -8,6 +8,29 @@ export function shuffleArray(array) {
     return shuffled;
 }
 
+// --- single vs multi-choice helpers (the central invariant) ---
+// A question is multi-choice iff its correctAnswer is an array with length > 1.
+export function isMultiChoice(question) {
+    return Array.isArray(question.correctAnswer) && question.correctAnswer.length > 1;
+}
+
+// Whether option `idx` is (part of) the correct answer, for either answer shape.
+export function isCorrectOption(question, idx) {
+    return Array.isArray(question.correctAnswer)
+        ? question.correctAnswer.includes(idx)
+        : question.correctAnswer === idx;
+}
+
+// Whether option `idx` is part of the user's answer, for either answer shape.
+export function isOptionChosen(userAnswer, idx) {
+    return Array.isArray(userAnswer) ? userAnswer.includes(idx) : userAnswer === idx;
+}
+
+// A, B, C, ... label for an option index.
+export function optionLabel(index) {
+    return String.fromCharCode(65 + index);
+}
+
 // --- validate JSON structure ---
 export function validateQuizData(data) {
     if (!data.questions || !Array.isArray(data.questions)) {
@@ -117,6 +140,27 @@ export function processQuizData(data, settings) {
     return { ...data, questions: processedQuestions };
 }
 
+// Reads a quiz file, parses it as JSON and validates it. Resolves to
+// { data } on success or { error } on parse/validation failure. Shared by the
+// upload page and the creator's import. Does not enforce the >= 2 question
+// minimum — callers add that where it applies.
+export function readQuizFile(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = JSON.parse(event.target.result);
+                const validationError = validateQuizData(data);
+                if (validationError) return resolve({ error: validationError });
+                resolve({ data });
+            } catch {
+                resolve({ error: 'Invalid JSON file format' });
+            }
+        };
+        reader.readAsText(file);
+    });
+}
+
 // Triggers a browser download of the quiz JSON. Content is identical for
 // both extensions; only the filename changes.
 export function downloadQuizFile(quizData, rawName, extension) {
@@ -174,4 +218,28 @@ export function calculateQuestionScore(question, userAnswer) {
         // F1 Formula
         return (2 * precision * recall) / (precision + recall);
     }
+}
+
+// Aggregates per-question scores into the result summary. Buckets each question
+// as correct (score === 1), incorrect (score === 0), or partial (in between),
+// and returns the final score out of 10. `score`/`totalPoints` are numeric;
+// callers format for display.
+export function summarizeResults(questions, answers) {
+    let totalPoints = 0;
+    let correctCount = 0;
+    let incorrectCount = 0;
+    let partialCount = 0;
+
+    questions.forEach((q, idx) => {
+        const qScore = calculateQuestionScore(q, answers[idx]);
+        totalPoints += qScore;
+        if (qScore === 1) correctCount++;
+        else if (qScore === 0) incorrectCount++;
+        else partialCount++;
+    });
+
+    const totalQuestions = questions.length;
+    const score = totalQuestions === 0 ? 0 : (totalPoints / totalQuestions) * 10;
+
+    return { correctCount, partialCount, incorrectCount, totalQuestions, totalPoints, score };
 }
