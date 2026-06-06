@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import QuestionEditor from '../ui/QuestionEditor';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
@@ -27,6 +27,12 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
   // their current work. null when no import is awaiting confirmation.
   const [pendingImport, setPendingImport] = useState(null);
   const importInputRef = useRef(null);
+
+  // Entering the creator should start at the top, not inherit the upload
+  // page's scroll position (which lands the editor mid-screen).
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   // Paginate the question editors 10 per page; the actions box below stays put.
   const PER_PAGE = 10;
