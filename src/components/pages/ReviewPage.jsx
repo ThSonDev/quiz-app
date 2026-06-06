@@ -55,9 +55,18 @@ const ReviewPage = ({ quizData, answers, setView }) => {
                   {question.options.map((option, optIdx) => {
                     const correct = isCorrectOption(question, optIdx);
                     const selectedByUser = isOptionChosen(userAnswer, optIdx);
+                    // A correct option the user missed is shown like the quiz
+                    // runner: a green dashed box (still the right answer) with a
+                    // red "Unchosen" X. The green "✓ Correct" tick only appears
+                    // when the user actually picked the correct option.
+                    const missedCorrect = correct && !selectedByUser;
 
                     let optionClass = 'p-3 rounded-lg border-2 flex items-center justify-between ';
-                    if (correct) {
+                    if (missedCorrect) {
+                      optionClass += isDarkMode
+                        ? 'bg-green-900/30 border-green-500 border-dashed'
+                        : 'bg-green-50 border-green-500 border-dashed';
+                    } else if (correct) {
                       optionClass += isDarkMode ? 'bg-green-900 border-green-600' : 'bg-green-50 border-green-500';
                     } else if (selectedByUser && !correct) {
                       optionClass += isDarkMode ? 'bg-red-900 border-red-600' : 'bg-red-50 border-red-500';
@@ -72,7 +81,14 @@ const ReviewPage = ({ quizData, answers, setView }) => {
                           <span>{option}</span>
                         </div>
                         <div className="flex items-center">
-                          {correct && (
+                          {missedCorrect && (
+                            <span className={`ml-2 font-medium text-sm flex items-center ${
+                              isDarkMode ? 'text-red-400' : 'text-red-700'
+                            }`}>
+                              ✗ Unchosen
+                            </span>
+                          )}
+                          {correct && !missedCorrect && (
                             <span className={`ml-2 font-medium text-sm flex items-center ${
                               isDarkMode ? 'text-green-400' : 'text-green-700'
                             }`}>
