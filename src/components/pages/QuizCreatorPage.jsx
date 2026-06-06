@@ -6,6 +6,7 @@ import ErrorBanner from '../ui/ErrorBanner';
 import Pagination from '../ui/Pagination';
 import { downloadQuizFile, readQuizFile } from '../../utils/utils';
 import { useTheme } from '../../contexts/useTheme';
+import { useBackGuard } from '../../hooks/useBackGuard';
 import { buildQuizPayload, emptyQuestion, quizToCreatorQuestions } from '../../utils/quizCreator';
 
 const stripExtension = (name) => name.replace(/\.(json|txt)$/i, '');
@@ -111,14 +112,18 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
     setView('upload');
   };
 
+  // Mobile/browser Back behaves like the on-screen "Back to Upload" button
+  // (confirms first if there is unsaved work) instead of leaving the app.
+  useBackGuard(requestExit);
+
   return (
     <div className="min-h-screen p-4">
       <div className="max-w-4xl mx-auto py-8">
-        <div className="mb-4 flex flex-wrap gap-3">
+        <div className="mb-4 flex flex-wrap gap-3 sticky top-4 z-20">
           <button
             type="button"
             onClick={requestExit}
-            className={`px-4 py-2 ${
+            className={`px-4 py-2 shadow-lg ${
               isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-600 hover:bg-gray-700'
             } text-white rounded-lg font-medium transition-all`}
             title="Back to Upload"
@@ -130,7 +135,7 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
               <button
                 type="button"
                 onClick={() => importInputRef.current?.click()}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-all"
+                className="px-4 py-2 shadow-lg bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-all"
                 title="Upload an existing quiz to edit"
               >
                 Upload Your Quiz

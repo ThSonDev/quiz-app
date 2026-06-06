@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/useTheme';
+import { useBackGuard } from '../../hooks/useBackGuard';
 import { isMultiChoice, isCorrectOption, isOptionChosen } from '../../utils/utils';
 import AnswerOption from '../ui/AnswerOption';
 import QuizProgressBar from '../ui/QuizProgressBar';
@@ -31,6 +32,10 @@ const QuizPage = ({
   useEffect(() => {
     setMultiSelection([]);
   }, [currentQuestion]);
+
+  // Mobile/browser Back shows the exit confirmation instead of leaving the app
+  // (mirrors the on-screen "Return to Upload" button).
+  useBackGuard(() => setShowExitModal(true));
 
   const handleAnswerSelect = (optionIndex) => {
     if (isAnswered) return;
@@ -76,7 +81,7 @@ const QuizPage = ({
 
   return (
     <div className="min-h-screen p-4">
-      <div className="max-w-3xl mx-auto py-8">
+      <div className="max-w-3xl mx-auto py-8 animate-fadeInUp">
         <div className="mb-4">
           <button
             onClick={() => setShowExitModal(true)}
