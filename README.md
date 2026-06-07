@@ -10,10 +10,11 @@ A modern, feature-rich web-based quiz application with customizable shuffle opti
 
 - **JSON-based quizzes** - Upload your own quiz data (`.json` or `.txt`)
 - **Saved quiz library** - Previously uploaded quizzes are remembered in your browser (no login); pick one to redo, edit its questions, bookmark favorites to the top, or remove them
+- **Results history** - Every finished attempt is saved per quiz (score, breakdown, and the exact layout you saw); re-open a past attempt to review it or retry it, and see how your score changed versus your last same-size attempt
 - **Built-in Quiz Creator** - Build a quiz in the browser and download it as `.json` or `.txt`
 - **Single & multiple choice** - Mix both types in the same quiz; multi-choice answers are scored with partial credit (F1)
 - **Smart shuffling** - Randomize questions and/or answer options. Override shuffle settings for specific questions
-- **Quiz Size (%)** - Choose what percentage of the total questions to include (e.g., 50% = half the quiz) or specify the exact number of questions to attempt
+- **Quiz Size (% or #)** - Take a percentage of the questions (e.g., 50% = half the quiz) **or** an exact number; each mode remembers its own value
 - **Review mode** - Comprehensive review of all answers after completion
 - **Retry functionality** - Retake quizzes with same layout or re-shuffling
 - **Responsive design** - Works seamlessly on all devices
@@ -24,7 +25,7 @@ A modern, feature-rich web-based quiz application with customizable shuffle opti
 - **React** - UI library
 - **JavaScript (ES6+)** - Core logic
 - **Tailwind CSS** - Styling
-- **Lucide React** - Icons
+- **Custom inline SVG icons** - A small named icon set in `src/components/ui/icons.jsx` (no runtime icon dependency)
 - **Vite** - Build tool / dev server
 
 ## Installation
@@ -78,6 +79,7 @@ quiz-app/
 │   │       ├── Pagination.jsx        # Prev / Page X of Y / Next control
 │   │       ├── ThemeToggle.jsx       # Dark/light toggle
 │   │       ├── QuizLibraryPane.jsx   # Slide-over list of saved quizzes
+│   │       ├── HistoryPane.jsx       # Slide-over list of a quiz's past attempts
 │   │       ├── Modal.jsx             # Generic centered confirm modal
 │   │       ├── AnswerOption.jsx      # Answer button used by QuizPage
 │   │       ├── QuizProgressBar.jsx   # Progress card for QuizPage
@@ -86,11 +88,13 @@ quiz-app/
 │   │       └── OptionEditor.jsx      # One option row in the creator
 │   ├── hooks/
 │   │   ├── useQuizLibrary.js         # Saved-quiz library state + persistence
-│   │   └── useBackGuard.js           # Intercept browser/mobile Back action
+│   │   ├── useBackGuard.js           # Intercept browser/mobile Back action
+│   │   └── useBodyScrollLock.js      # Reference-counted body scroll lock for slide-overs
 │   └── utils/
 │       ├── utils.js                  # Shuffle, validation, scoring, results, download
 │       ├── quizCreator.js            # Creator <-> upload shape converters
-│       └── storage.js                # Saved-quiz library (localStorage)
+│       ├── storage.js                # Saved-quiz library (localStorage)
+│       └── history.js                # Results history per quiz (localStorage)
 ├── tests/
 │   └── domain/                       # node:test suites for the pure logic
 ├── index.html
@@ -148,10 +152,10 @@ Before uploading your quiz:
 - Toggle **"Shuffle Questions"** to randomize question order
 - Toggle **"Shuffle Options"** to randomize answer choices
 - Both shuffle options are OFF by default
-- Set **"Quiz Size (%/#)"** to choose how many questions to take: 
-  - Default: `100` % (use all questions)  
-  - Range: `10–100` (for percentage mode)
-  - Or the exact number of questions you want to answer (number mode)
+- Set **"Quiz Size"** to choose how many questions to take. Use the **`%`** / **`#`** buttons to switch modes:
+  - **`%` (percentage):** `10–100`, default `100` (use all questions)
+  - **`#` (count):** an exact number of questions; pre-filled with the loaded quiz's full size
+  - The two modes keep **separate** values — switching back and forth never turns a count like `7` into a bogus `7%`; each mode remembers what you last set
 
 ### 3. Upload and Start
 
@@ -177,11 +181,24 @@ Quizzes that share a name and question count but have different content are kept
 ### 4. View Results
 
 After completing all questions:
-- See your score (out of 10)
-- View correct/incorrect counts
+- See your score (out of 10), with a **+/- change badge** on the score circle showing how you did versus your most recent attempt of the **same size** (hidden when there's no comparable past attempt)
+- View correct/incorrect (and, for multi-choice quizzes, partial) counts
 - **Review** - See all questions with correct answers
-- **Retry** - Take the quiz again
-- **Finish** - Upload a new quiz
+- **Retry** - Take the quiz again (same layout, or re-shuffle)
+- **Finish** - Return to the upload page
+
+#### Results history
+
+Finishing a quiz saves that attempt. You can revisit it two ways:
+
+- From the **Review** page, click **Results history** (top-right) to open a side panel of that quiz's attempts.
+- From the **saved-quiz library** panel, any quiz with past attempts shows a **Results history** link.
+
+Each row shows the date, the score `/10`, and the configuration used (shuffle and size). Click a reviewable attempt to re-open its result page — you can review every answer exactly as you saw it, or retry that same layout. Opening a past attempt shows a **Return Back** button instead of Finish, taking you back where you came from.
+
+> **Editing a quiz invalidates its old attempts.** Because editing changes the questions, the saved layouts no longer match — so on save, that quiz's history is kept as **score-only** records (you still see the past scores, but they can't be re-opened for review). The editor warns you before saving when this applies.
+
+This history lives only in the current browser (no account, no sync); clearing site data removes it.
 
 ### Multiple Choice Questions
 
@@ -239,6 +256,10 @@ What you can do:
 Questions are paginated 10 per page; the file name and download/save controls stay visible below regardless of the page.
 
 Imported files are validated against the schema above before loading; if you already have questions in progress, the editor asks before replacing them. The downloaded file matches the same JSON schema, so you can immediately upload it back to take the quiz. Both extensions contain identical content; pick whichever your tooling prefers.
+
+## Data & storage
+
+Everything you create — your theme, saved quizzes, and results history — stays in **your browser**. There's no account, no sign-in, and no syncing across devices. Clearing your browser's site data removes it.
 
 ## Contributing
 

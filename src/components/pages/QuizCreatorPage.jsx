@@ -11,7 +11,7 @@ import { buildQuizPayload, emptyQuestion, quizToCreatorQuestions } from '../../u
 
 const stripExtension = (name) => name.replace(/\.(json|txt)$/i, '');
 
-const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEdit }) => {
+const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEdit, editHasHistory = false }) => {
   const { isDarkMode, classes } = useTheme();
   const isEditing = Boolean(editingQuiz);
   // In edit mode, seed the editor from the saved quiz; otherwise start blank.
@@ -26,6 +26,9 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
   // Questions parsed from an upload, held until the user confirms replacing
   // their current work. null when no import is awaiting confirmation.
   const [pendingImport, setPendingImport] = useState(null);
+  // When saving an edit to a quiz that has results history, confirm first: the
+  // content (and id) change means past attempts can no longer be reviewed.
+  const [showHistoryWarn, setShowHistoryWarn] = useState(false);
   const importInputRef = useRef(null);
 
   // Entering the creator should start at the top, not inherit the upload
@@ -67,14 +70,32 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
   };
 
   // Save edits back to the library (App handles persistence + navigation).
-  const handleSaveEdit = () => {
+  const performSaveEdit = () => {
     const result = buildQuizPayload(questions);
+    setShowHistoryWarn(false);
     if (result.error) {
       setError(result.error);
       return;
     }
     setError('');
     onSaveEdit(result.data, filename.trim() || editingQuiz.name);
+  };
+
+  const handleSaveEdit = () => {
+    // Validate up front so we don't warn about history only to fail the build.
+    const result = buildQuizPayload(questions);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setError('');
+    // Only warn when the user actually changed something — an untouched edit
+    // keeps the same content id, so its history stays intact.
+    if (editHasHistory && isDirty) {
+      setShowHistoryWarn(true);
+      return;
+    }
+    performSaveEdit();
   };
 
   // Snapshot the editor's initial contents on first render so we can tell
@@ -287,6 +308,25 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
             type="button"
             variant="secondary"
             onClick={() => setShowExitModal(false)}
+            className="w-full"
+          >
+            Cancel
+          </Button>
+        </Modal>
+      )}
+
+      {showHistoryWarn && (
+        <Modal
+          title="Save changes?"
+          description="Editing changes this quiz, so its saved attempts can no longer be opened for review — only their final scores will be kept in Results history."
+        >
+          <Button type="button" variant="success" onClick={performSaveEdit} className="w-full">
+            Save Changes
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setShowHistoryWarn(false)}
             className="w-full"
           >
             Cancel

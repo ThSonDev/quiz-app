@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { processQuizData, readQuizFile } from '../../utils/utils.js';
 import { sortLibrary, hashQuiz } from '../../utils/storage.js';
+import { loadHistory } from '../../utils/history.js';
 import { useQuizLibrary } from '../../hooks/useQuizLibrary';
 import { useTheme } from '../../contexts/useTheme';
 import QuizLibraryPane from '../ui/QuizLibraryPane';
@@ -26,17 +27,29 @@ const JSONUploadPage = ({
   uploadedFileInfo,
   setUploadedFileInfo,
   setEditingQuiz,
+  onOpenHistory,
 }) => {
   const { isDarkMode, classes } = useTheme();
   const [error, setError] = useState('');
   const [shuffleQuestions, setShuffleQuestions] = useState(false);
   const [shuffleOptions, setShuffleOptions] = useState(false);
-  const [quizSize, setQuizSize] = useState('100');
   const [quizSizeMode, setQuizSizeMode] = useState('percentage');
+  // Each mode keeps its own value so toggling never carries a count into the
+  // percentage field (or vice versa) — a count of 7 is meaningless as "7%".
+  // Percentage defaults to 100; count is seeded with the loaded quiz's full
+  // question count (refreshed whenever a quiz is loaded). The active field
+  // reads/writes whichever one matches the current mode.
+  const [percentSize, setPercentSize] = useState('100');
+  const [countSize, setCountSize] = useState('');
+  const quizSize = quizSizeMode === 'percentage' ? percentSize : countSize;
+  const setActiveSize = quizSizeMode === 'percentage' ? setPercentSize : setCountSize;
   // Saved-quiz library (localStorage), owned by the hook. The page remounts on
   // each return to upload, so it always reflects fresh storage.
   const { library, saveQuiz, removeFromLibrary, toggleBookmark } = useQuizLibrary();
   const [showLibrary, setShowLibrary] = useState(false);
+  // Results history per quiz id, read once on mount (the page remounts on each
+  // return to upload, so it reflects attempts recorded during the session).
+  const [historyMap] = useState(() => loadHistory());
 
   // Returning to upload should start at the top, not inherit the previous
   // page's scroll position.
@@ -68,6 +81,9 @@ const JSONUploadPage = ({
     });
     setOriginalQuizData(data);
     setError('');
+    // Seed the count field with this quiz's full size (the percentage value is
+    // left as the user set it).
+    setCountSize(String(data.questions.length));
 
     // Persist to the library (dedupes identical content by bumping time).
     saveQuiz(data, file.name);
@@ -91,6 +107,8 @@ const JSONUploadPage = ({
     });
     setOriginalQuizData(entry.rawData);
     setError('');
+    // Seed the count field with this quiz's full size.
+    setCountSize(String(entry.questionCount));
     setShowLibrary(false);
   };
 
@@ -110,17 +128,17 @@ const JSONUploadPage = ({
   const handleQuizSizeChange = (e) => {
     const value = e.target.value;
     if (value === '') {
-      setQuizSize('');
+      setActiveSize('');
       return;
     }
     if (!/^\d+$/.test(value)) return;
 
     const numValue = parseInt(value);
     if (quizSizeMode === 'percentage' && numValue > 100) {
-      setQuizSize('100');
+      setPercentSize('100');
       return;
     }
-    setQuizSize(value);
+    setActiveSize(value);
   };
 
   const startQuiz = () => {
@@ -167,7 +185,7 @@ const JSONUploadPage = ({
 
   return (
     <div className="flex items-center justify-center min-h-screen p-4">
-      <div className={`${classes.cardBg} rounded-2xl shadow-2xl p-8 max-w-md w-full transition-colors duration-300`}>
+      <div className={`${classes.cardBg} rounded-2xl shadow-2xl p-8 max-w-md w-full transition-colors duration-300 animate-fadeInUp`}>
         <div className="text-center mb-8">
           <div className={`${isDarkMode ? 'bg-indigo-900' : 'bg-indigo-100'} w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4`}>
             <IconUpload className={`w-10 h-10 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
@@ -377,9 +395,11 @@ const JSONUploadPage = ({
       {showLibrary && (
         <QuizLibraryPane
           entries={sortLibrary(library)}
+          historyMap={historyMap}
           onSelect={selectFromLibrary}
           onToggleBookmark={toggleBookmark}
           onRemove={removeFromLibrary}
+          onOpenHistory={onOpenHistory}
           onClose={() => setShowLibrary(false)}
         />
       )}

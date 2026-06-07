@@ -4,9 +4,21 @@ import QuizPage from './components/pages/QuizPage';
 import ResultPage from './components/pages/ResultPage';
 import ReviewPage from './components/pages/ReviewPage';
 import QuizCreatorPage from './components/pages/QuizCreatorPage';
+import HistoryPane from './components/ui/HistoryPane';
 import ThemeToggle from './components/ui/ThemeToggle';
 import { useTheme } from './contexts/useTheme';
-import { loadLibrary, saveLibrary, replaceQuiz } from './utils/storage';
+import { processQuizData } from './utils/utils';
+import { loadLibrary, saveLibrary, replaceQuiz, hashQuiz } from './utils/storage';
+import {
+  loadHistory,
+  saveHistory,
+  getAttempts,
+  hasHistory,
+  buildAttempt,
+  recordAttempt,
+  attemptDelta,
+  migrateHistoryForEdit,
+} from './utils/history';
 
 const App = () => {
   const { classes } = useTheme();
@@ -35,10 +47,104 @@ const App = () => {
   // when the creator is building a new quiz. Shape: { id, name, bookmarked, rawData }.
   const [editingQuiz, setEditingQuiz] = useState(null);
 
+  // --- Results history view state -------------------------------------------
+  // When the user opens a past attempt, `viewingAttempt` holds { attempt, original,
+  // delta } and the results/review pages render that attempt's stored layout/answers
+  // instead of the live run (the live slots are left untouched so returning to a
+  // live review still works). `attemptOrigin` is where the "return back" button
+  // goes ('review' or 'upload'). `liveDelta` is the live run's score change vs the
+  // prior attempt; it is kept separate from a viewed attempt's delta so detouring
+  // through history doesn't clobber it. `historyPane` drives the slide-over list.
+  const [viewingAttempt, setViewingAttempt] = useState(null);
+  const [attemptOrigin, setAttemptOrigin] = useState('upload');
+  const [liveDelta, setLiveDelta] = useState(null);
+  const [historyPane, setHistoryPane] = useState(null);
+  // The id of the just-finished live attempt, so the history pane (opened from
+  // its review) can badge it as "This attempt" and block re-opening it.
+  const [currentAttemptId, setCurrentAttemptId] = useState(null);
+
+  const isHistoryView = viewingAttempt != null;
+  const effectiveQuizData = isHistoryView ? viewingAttempt.attempt.processedQuizData : processedQuizData;
+  const effectiveAnswers = isHistoryView ? viewingAttempt.attempt.answers : answers;
+  const effectiveSettings = isHistoryView ? viewingAttempt.attempt.settings : activeSettings;
+  const resultDelta = isHistoryView ? viewingAttempt.delta : liveDelta;
+
+  // Finishing a live quiz: record the attempt, compute the delta vs the most
+  // recent prior attempt, and show the (live) results. Called from QuizPage's
+  // finish button so it fires exactly once per completion.
+  const finishQuiz = () => {
+    const quizId = hashQuiz(originalQuizData);
+    const attempt = buildAttempt({ processedQuizData, answers, settings: activeSettings });
+    const previous = recordAttempt(quizId, attempt);
+    // Compare against the most recent prior attempt of the same size (see
+    // attemptDelta); the new attempt sits at the end of the combined list.
+    const all = [...previous, attempt];
+    setLiveDelta(attemptDelta(all, all.length - 1));
+    setCurrentAttemptId(attempt.attemptId);
+    setViewingAttempt(null);
+    setView('results');
+  };
+
+  // Open the history slide-over for a quiz. `origin` decides where a viewed
+  // attempt's "return back" lands; `currentId` (review origin only) badges the
+  // attempt being viewed so it can't be re-opened.
+  const openHistoryPane = (quizId, name, origin, currentId = null) => {
+    setHistoryPane({ quizId, name, origin, currentAttemptId: currentId, attempts: getAttempts(loadHistory(), quizId) });
+  };
+  const openHistoryFromReview = () =>
+    openHistoryPane(hashQuiz(originalQuizData), uploadedFileInfo?.name ?? 'This quiz', 'review', currentAttemptId);
+  const openHistoryFromLibrary = (entry) => openHistoryPane(entry.id, entry.name, 'upload');
+
+  // Open a past (reviewable) attempt: load its stored layout/answers/settings
+  // into the view, look up its source quiz for retries, and show its results.
+  const selectHistoryAttempt = (attempt, index) => {
+    const { quizId, origin, attempts } = historyPane;
+    // For "new shuffle" retries we need the full original quiz; fall back to the
+    // stored layout if the source quiz has since been removed from the library.
+    const original = loadLibrary().find((e) => e.id === quizId)?.rawData ?? attempt.processedQuizData;
+    // Delta vs the most recent earlier attempt of the same size at this point in history.
+    const delta = attemptDelta(attempts, index);
+    setViewingAttempt({ attempt, original, delta });
+    setAttemptOrigin(origin);
+    setHistoryPane(null);
+    setView('results');
+  };
+
+  // Leave a viewed attempt, returning to wherever the history was opened from.
+  const returnFromAttempt = () => {
+    const origin = attemptOrigin;
+    setViewingAttempt(null);
+    setView(origin === 'review' ? 'review' : 'upload');
+  };
+
+  // Retry handlers, shared by live results and viewed attempts. From a viewed
+  // attempt they first promote its layout/settings/source into the live slots
+  // and clear the history view, so the subsequent finish records normally.
+  const startRetry = (reshuffle) => {
+    const original = isHistoryView ? viewingAttempt.original : originalQuizData;
+    const settings = isHistoryView ? viewingAttempt.attempt.settings : activeSettings;
+    const sameLayout = isHistoryView ? viewingAttempt.attempt.processedQuizData : processedQuizData;
+    if (isHistoryView) {
+      setOriginalQuizData(original);
+      setActiveSettings(settings);
+      setViewingAttempt(null);
+    }
+    setAnswers({});
+    setCurrentQuestion(0);
+    setLiveDelta(null);
+    setProcessedQuizData(reshuffle ? processQuizData(original, settings) : sameLayout);
+    setView('quiz');
+  };
+  const retrySameLayout = () => startRetry(false);
+  const retryNewShuffle = () => startRetry(true);
+
   // Persist an edited quiz back to the library (new content gets a new id; the
   // old entry is replaced, time bumped, bookmark carried over), reload it into
-  // the upload card, and return to the upload page.
+  // the upload card, and return to the upload page. Its results history is moved
+  // to the new id as score-only records (reviewing old attempts no longer makes
+  // sense once the questions change).
   const saveEditedQuiz = (builtData, name) => {
+    const newId = hashQuiz(builtData);
     const entries = replaceQuiz(
       loadLibrary(),
       editingQuiz.id,
@@ -46,11 +152,14 @@ const App = () => {
       editingQuiz.bookmarked,
     );
     saveLibrary(entries);
+    saveHistory(migrateHistoryForEdit(loadHistory(), editingQuiz.id, newId));
     setUploadedFileInfo({ name, questionCount: builtData.questions.length, rawData: builtData });
     setOriginalQuizData(builtData);
     setEditingQuiz(null);
     setView('upload');
   };
+
+  const editHasHistory = editingQuiz ? hasHistory(loadHistory(), editingQuiz.id) : false;
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${classes.pageGradient}`}>
@@ -69,6 +178,7 @@ const App = () => {
           uploadedFileInfo={uploadedFileInfo}
           setUploadedFileInfo={setUploadedFileInfo}
           setEditingQuiz={setEditingQuiz}
+          onOpenHistory={openHistoryFromLibrary}
         />
       )}
 
@@ -80,27 +190,33 @@ const App = () => {
           currentQuestion={currentQuestion}
           setCurrentQuestion={setCurrentQuestion}
           setView={setView}
+          onFinish={finishQuiz}
         />
       )}
 
       {view === 'results' && (
         <ResultPage
-          quizData={processedQuizData}
-          originalQuizData={originalQuizData}
-          answers={answers}
+          quizData={effectiveQuizData}
+          answers={effectiveAnswers}
+          settings={effectiveSettings}
+          isHistoryView={isHistoryView}
+          delta={resultDelta}
+          onReviewAnswers={() => setView('review')}
+          onRetrySameLayout={retrySameLayout}
+          onRetryNewShuffle={retryNewShuffle}
+          onReturnBack={returnFromAttempt}
           setAnswers={setAnswers}
-          activeSettings={activeSettings}
           setCurrentQuestion={setCurrentQuestion}
-          setProcessedQuizData={setProcessedQuizData}
           setView={setView}
         />
       )}
 
       {view === 'review' && (
         <ReviewPage
-          quizData={processedQuizData}
-          answers={answers}
+          quizData={effectiveQuizData}
+          answers={effectiveAnswers}
           setView={setView}
+          onOpenHistory={isHistoryView ? undefined : openHistoryFromReview}
         />
       )}
 
@@ -110,6 +226,17 @@ const App = () => {
           editingQuiz={editingQuiz}
           setEditingQuiz={setEditingQuiz}
           onSaveEdit={saveEditedQuiz}
+          editHasHistory={editHasHistory}
+        />
+      )}
+
+      {historyPane && (
+        <HistoryPane
+          quizName={historyPane.name}
+          attempts={historyPane.attempts}
+          currentAttemptId={historyPane.currentAttemptId}
+          onSelect={selectHistoryAttempt}
+          onClose={() => setHistoryPane(null)}
         />
       )}
     </div>

@@ -50,3 +50,11 @@ export const IconSun = makeIcon(
 export const IconMoon = makeIcon(
   'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z'
 );
+export const IconShuffle = makeIcon([
+  'M16 3h5v5',
+  'M4 20L21 3',
+  'M21 16v5h-5',
+  'M15 15l6 6',
+  'M4 4l5 5',
+]);
+export const IconHistory = makeIcon('M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z');

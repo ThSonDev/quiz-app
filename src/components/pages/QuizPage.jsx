@@ -16,6 +16,7 @@ const QuizPage = ({
   currentQuestion,
   setCurrentQuestion,
   setView,
+  onFinish,
 }) => {
   const { isDarkMode, classes } = useTheme();
   const [showExitModal, setShowExitModal] = useState(false);
@@ -67,7 +68,7 @@ const QuizPage = ({
     if (currentQuestion < totalQuestions - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else if (answeredCount === totalQuestions) {
-      setView('results');
+      onFinish();
     }
   };
 

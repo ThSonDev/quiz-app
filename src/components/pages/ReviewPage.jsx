@@ -7,8 +7,9 @@ import {
 } from '../../utils/utils';
 import { useTheme } from '../../contexts/useTheme';
 import Explanation from '../ui/Explanation';
+import { IconHistory } from '../ui/icons';
 
-const ReviewPage = ({ quizData, answers, setView }) => {
+const ReviewPage = ({ quizData, answers, setView, onOpenHistory }) => {
   const { isDarkMode, classes } = useTheme();
   const maxPointPerQuestion = 10 / quizData.questions.length;
 
@@ -27,7 +28,7 @@ const ReviewPage = ({ quizData, answers, setView }) => {
 
   return (
     <div className="min-h-screen p-4">
-      <div className="max-w-4xl mx-auto py-8">
+      <div className="max-w-4xl mx-auto py-8 animate-fadeInUp">
         <div className="sticky top-4 z-10 mb-6">
           <button
             onClick={() => setView('results')}
@@ -38,8 +39,25 @@ const ReviewPage = ({ quizData, answers, setView }) => {
         </div>
 
         <div className={`${classes.cardBg} rounded-xl shadow-lg p-6 mb-6`}>
-          <h2 className={`text-2xl font-bold ${classes.textColor} mb-2`}>Review All Answers</h2>
-          <p className={classes.mutedText}>See all questions, correct answers, and explanations</p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className={`text-2xl font-bold ${classes.textColor} mb-2`}>Review All Answers</h2>
+              <p className={classes.mutedText}>See all questions, correct answers, and explanations</p>
+            </div>
+            {onOpenHistory && (
+              <button
+                type="button"
+                onClick={onOpenHistory}
+                className={`flex-shrink-0 inline-flex items-center gap-1.5 text-sm font-medium ${
+                  isDarkMode ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-800'
+                } hover:underline`}
+                title="See past attempts of this quiz"
+              >
+                <IconHistory className="w-4 h-4" />
+                Results history
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="space-y-6">

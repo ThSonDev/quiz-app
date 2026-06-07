@@ -1,14 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTheme } from '../../contexts/useTheme';
-import { IconClose, IconStar, IconTrash } from './icons';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { getAttempts } from '../../utils/history';
+import { IconClose, IconStar, IconTrash, IconHistory } from './icons';
 
 const formatTime = (ts) =>
   new Date(ts).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
 // Slide-over panel listing the user's saved quizzes. Presentational: the parent
 // owns the entries and persistence, this only fires callbacks. Entries arrive
-// pre-sorted (bookmarked first, newest first).
-const QuizLibraryPane = ({ entries, onSelect, onToggleBookmark, onRemove, onClose }) => {
+// pre-sorted (bookmarked first, newest first). `historyMap` lets each entry
+// surface a "Results history" link when that quiz has past attempts; selecting
+// it calls onOpenHistory without closing this pane (the history pane stacks on top).
+const QuizLibraryPane = ({ entries, historyMap = {}, onSelect, onToggleBookmark, onRemove, onOpenHistory, onClose }) => {
   const { isDarkMode, classes } = useTheme();
   // Two-step delete so a stray tap can't wipe a saved quiz.
   const [confirmRemoveId, setConfirmRemoveId] = useState(null);
@@ -21,14 +25,9 @@ const QuizLibraryPane = ({ entries, onSelect, onToggleBookmark, onRemove, onClos
     setTimeout(action, 250);
   };
 
-  // Lock background scroll while the pane is open; restore on close/unmount.
-  useEffect(() => {
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, []);
+  // Lock background scroll while the pane is open (reference-counted so it
+  // composes with a history pane stacked on top).
+  useBodyScrollLock();
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -58,7 +57,9 @@ const QuizLibraryPane = ({ entries, onSelect, onToggleBookmark, onRemove, onClos
           <p className={classes.mutedText}>No saved quizzes yet.</p>
         ) : (
           <ul className="space-y-3">
-            {entries.map((e) => (
+            {entries.map((e) => {
+              const attemptCount = getAttempts(historyMap, e.id).length;
+              return (
               <li key={e.id} className={`${classes.innerBg} rounded-xl p-4`}>
                 <div className="flex items-start gap-3">
                   <button
@@ -102,6 +103,21 @@ const QuizLibraryPane = ({ entries, onSelect, onToggleBookmark, onRemove, onClos
                   </div>
                 </div>
 
+                {attemptCount > 0 && onOpenHistory && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenHistory(e)}
+                    className={`mt-2 inline-flex items-center gap-1.5 text-sm font-medium ${
+                      isDarkMode ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-800'
+                    } hover:underline`}
+                    title="See past attempts of this quiz"
+                  >
+                    <IconHistory className="w-4 h-4" />
+                    Results history
+                    <span className={classes.mutedText}>({attemptCount})</span>
+                  </button>
+                )}
+
                 {confirmRemoveId === e.id && (
                   <div className="mt-3 flex items-center gap-2">
                     <span className={`text-sm ${classes.mutedText}`}>Remove this quiz?</span>
@@ -125,7 +141,8 @@ const QuizLibraryPane = ({ entries, onSelect, onToggleBookmark, onRemove, onClos
                   </div>
                 )}
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </div>
