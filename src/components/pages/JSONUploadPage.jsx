@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { processQuizData, readQuizFile } from '../../utils/utils.js';
 import { sortLibrary, hashQuiz } from '../../utils/storage.js';
 import { loadHistory } from '../../utils/history.js';
+import { sampleQuizEntry } from '../../utils/sampleQuiz.js';
 import { useQuizLibrary } from '../../hooks/useQuizLibrary';
 import { useTheme } from '../../contexts/useTheme';
 import QuizLibraryPane from '../ui/QuizLibraryPane';
@@ -262,7 +263,7 @@ const JSONUploadPage = ({
             </div>
           </div>
 
-          {library.length > 0 && (
+          {library.length > 0 ? (
             <button
               type="button"
               onClick={() => setShowLibrary(true)}
@@ -272,6 +273,21 @@ const JSONUploadPage = ({
               <span className={`font-medium ${classes.textColor}`}>
                 Choose a Saved Quiz
                 <span className={`ml-2 text-sm ${classes.mutedText}`}>({library.length})</span>
+              </span>
+              <IconChevronRight className={`w-5 h-5 ${classes.mutedText}`} />
+            </button>
+          ) : (
+            // No saved quizzes yet: offer the built-in sample in the same slot so
+            // a first-time visitor can load it straight into the card below.
+            <button
+              type="button"
+              onClick={() => selectFromLibrary(sampleQuizEntry)}
+              className={`w-full flex items-center justify-between px-4 py-3 ${classes.inputBgPlain} border-2 rounded-lg hover:border-indigo-500 transition-colors`}
+              title="Load the built-in sample quiz to try the app"
+            >
+              <span className={`font-medium ${classes.textColor}`}>
+                Load a sample quiz
+                <span className={`ml-2 text-sm ${classes.mutedText}`}>({sampleQuizEntry.questionCount} questions)</span>
               </span>
               <IconChevronRight className={`w-5 h-5 ${classes.mutedText}`} />
             </button>
@@ -394,7 +410,7 @@ const JSONUploadPage = ({
 
       {showLibrary && (
         <QuizLibraryPane
-          entries={sortLibrary(library)}
+          entries={[...sortLibrary(library), sampleQuizEntry]}
           historyMap={historyMap}
           onSelect={selectFromLibrary}
           onToggleBookmark={toggleBookmark}

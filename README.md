@@ -9,6 +9,7 @@ A modern, feature-rich web-based quiz application with customizable shuffle opti
 ## Features
 
 - **JSON-based quizzes** - Upload your own quiz data (`.json` or `.txt`)
+- **Built-in sample quiz** - A 10-question sample is always available, so you can try everything without creating a file first
 - **Saved quiz library** - Previously uploaded quizzes are remembered in your browser (no login); pick one to redo, edit its questions, bookmark favorites to the top, or remove them
 - **Results history** - Every finished attempt is saved per quiz (score, breakdown, and the exact layout you saw); re-open a past attempt to review it or retry it, and see how your score changed versus your last same-size attempt
 - **Built-in Quiz Creator** - Build a quiz in the browser and download it as `.json` or `.txt`
@@ -93,8 +94,11 @@ quiz-app/
 │   └── utils/
 │       ├── utils.js                  # Shuffle, validation, scoring, results, download
 │       ├── quizCreator.js            # Creator <-> upload shape converters
-│       ├── storage.js                # Saved-quiz library (localStorage)
-│       └── history.js                # Results history per quiz (localStorage)
+│       ├── sampleQuiz.js             # Built-in 10-question sample quiz
+│       ├── storage.js                # Saved-quiz library
+│       ├── history.js                # Results history per quiz
+│       ├── persistence.js            # In-memory cache + IndexedDB write-through (localStorage fallback)
+│       └── idb.js                    # Tiny IndexedDB key-value wrapper
 ├── tests/
 │   └── domain/                       # node:test suites for the pure logic
 ├── index.html
@@ -166,6 +170,13 @@ Before uploading your quiz:
 5. Navigate with Previous/Next buttons
 
 > Both `.json` and `.txt` are accepted. Either way the file must contain valid quiz JSON; only the extension differs.
+
+#### Try the sample quiz
+
+Don't have a quiz file yet? A built-in **Sample Quiz** (10 questions covering all the quiz features) is always available:
+
+- If you haven't saved any quizzes, a **Load a sample quiz** button appears on the upload page — click it to load the sample, then configure and start as usual.
+- Once you do have saved quizzes, the sample moves to the **bottom of the Choose a Saved Quiz list**, so it's always there to fall back on.
 
 #### Saved quizzes
 
@@ -259,7 +270,7 @@ Imported files are validated against the schema above before loading; if you alr
 
 ## Data & storage
 
-Everything you create — your theme, saved quizzes, and results history — stays in **your browser**. There's no account, no sign-in, and no syncing across devices. Clearing your browser's site data removes it.
+Everything you create — your theme, saved quizzes, and results history — stays in **your browser**. There's no account, no sign-in, and no syncing across devices. Saved quizzes and history are kept in your browser's built-in database (IndexedDB), which has plenty of room for lots of quizzes and a long history. Clearing your browser's site data removes it.
 
 ## Contributing
 

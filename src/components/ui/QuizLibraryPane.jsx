@@ -70,36 +70,48 @@ const QuizLibraryPane = ({ entries, historyMap = {}, onSelect, onToggleBookmark,
                   >
                     <p className={`font-semibold ${classes.textColor} break-words`}>{e.name}</p>
                     <p className={`text-sm ${classes.mutedText}`}>{e.questionCount} questions</p>
-                    <p className={`text-xs ${classes.mutedText} mt-1`}>{formatTime(e.uploadedAt)}</p>
+                    <p className={`text-xs ${classes.mutedText} mt-1`}>
+                      {e.isSample ? 'Built-in sample — always here to try' : formatTime(e.uploadedAt)}
+                    </p>
                   </button>
 
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => onToggleBookmark(e.id)}
-                      className={`p-1.5 rounded-full transition-colors ${
-                        e.bookmarked
-                          ? 'text-yellow-400'
-                          : `${classes.mutedText} hover:text-yellow-400`
-                      }`}
-                      aria-label={e.bookmarked ? 'Remove bookmark' : 'Bookmark'}
-                      title={e.bookmarked ? 'Remove bookmark' : 'Bookmark to top'}
-                    >
-                      <IconStar className="w-5 h-5" fill={e.bookmarked ? 'currentColor' : 'none'} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmRemoveId(e.id)}
-                      className={`p-1.5 rounded-full transition-colors ${
-                        isDarkMode
-                          ? 'text-red-400 hover:bg-red-900/40'
-                          : 'text-red-600 hover:bg-red-100'
-                      }`}
-                      aria-label="Remove"
-                      title="Remove from library"
-                    >
-                      <IconTrash className="w-5 h-5" />
-                    </button>
+                    {e.isSample ? (
+                      // The sample is always present and not stored, so it can't
+                      // be bookmarked or removed.
+                      <span className={`text-xs px-2 py-1 rounded-full ${isDarkMode ? 'bg-indigo-900 text-indigo-300' : 'bg-indigo-100 text-indigo-700'}`}>
+                        Sample
+                      </span>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => onToggleBookmark(e.id)}
+                          className={`p-1.5 rounded-full transition-colors ${
+                            e.bookmarked
+                              ? 'text-yellow-400'
+                              : `${classes.mutedText} hover:text-yellow-400`
+                          }`}
+                          aria-label={e.bookmarked ? 'Remove bookmark' : 'Bookmark'}
+                          title={e.bookmarked ? 'Remove bookmark' : 'Bookmark to top'}
+                        >
+                          <IconStar className="w-5 h-5" fill={e.bookmarked ? 'currentColor' : 'none'} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmRemoveId(e.id)}
+                          className={`p-1.5 rounded-full transition-colors ${
+                            isDarkMode
+                              ? 'text-red-400 hover:bg-red-900/40'
+                              : 'text-red-600 hover:bg-red-100'
+                          }`}
+                          aria-label="Remove"
+                          title="Remove from library"
+                        >
+                          <IconTrash className="w-5 h-5" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 

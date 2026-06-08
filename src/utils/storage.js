@@ -1,10 +1,12 @@
-// Client-side quiz library backed by localStorage. No backend: quizzes are
-// content-addressed so re-uploading the same file maps to the same entry.
-// Pure helpers (hashQuiz/upsertQuiz/removeQuiz/toggleBookmark/sortLibrary)
-// operate on plain arrays and are unit-tested; loadLibrary/saveLibrary are the
-// thin browser wrappers around them.
+// Client-side quiz library. No backend: quizzes are content-addressed so
+// re-uploading the same file maps to the same entry. Pure helpers
+// (hashQuiz/upsertQuiz/removeQuiz/toggleBookmark/sortLibrary) operate on plain
+// arrays and are unit-tested; loadLibrary/saveLibrary are the thin wrappers over
+// the shared persistence layer (IndexedDB-backed, localStorage fallback).
 
-const STORAGE_KEY = 'quizLibrary';
+import { readStore, writeStore } from './persistence.js';
+
+export const STORAGE_KEY = 'quizLibrary';
 
 // cyrb53: a fast non-cryptographic hash. We only need a stable id from the
 // quiz content, not security, so a sync hash keeps the upload flow simple.
@@ -67,20 +69,10 @@ export function sortLibrary(entries) {
 }
 
 export function loadLibrary() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  const data = readStore(STORAGE_KEY, []);
+  return Array.isArray(data) ? data : [];
 }
 
 export function saveLibrary(entries) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-  } catch {
-    // Storage full or unavailable — non-fatal; the library just won't persist.
-  }
+  writeStore(STORAGE_KEY, entries);
 }

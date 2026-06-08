@@ -1,8 +1,9 @@
-// Results history: an append-only list of attempts per quiz, in localStorage.
-// Quizzes are keyed by the same content-hash id the library uses (storage.js),
-// so a quiz's history follows its content. Pure helpers operate on a plain
-// `{ [quizId]: Attempt[] }` map (attempts oldest-first) and are unit-tested;
-// loadHistory/saveHistory are the thin browser wrappers around them.
+// Results history: an append-only list of attempts per quiz. Quizzes are keyed
+// by the same content-hash id the library uses (storage.js), so a quiz's history
+// follows its content. Pure helpers operate on a plain `{ [quizId]: Attempt[] }`
+// map (attempts oldest-first) and are unit-tested; loadHistory/saveHistory are
+// the thin wrappers over the shared persistence layer (IndexedDB-backed,
+// localStorage fallback).
 //
 // A "reviewable" attempt stores the exact layout shown (processedQuizData) and
 // the user's answers, so a past attempt can be re-opened for review or retried
@@ -12,8 +13,9 @@
 // edited questions), so they can no longer be reviewed. See migrateHistoryForEdit.
 
 import { summarizeResults } from './utils.js';
+import { readStore, writeStore } from './persistence.js';
 
-const HISTORY_KEY = 'quizHistory';
+export const HISTORY_KEY = 'quizHistory';
 
 // Build a full (reviewable) attempt record from a finished run. `now` is
 // injectable for deterministic tests.
@@ -98,22 +100,12 @@ export function migrateHistoryForEdit(historyMap, oldId, newId) {
 }
 
 export function loadHistory() {
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
+  const data = readStore(HISTORY_KEY, {});
+  return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
 }
 
 export function saveHistory(historyMap) {
-  try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(historyMap));
-  } catch {
-    // Storage full or unavailable — non-fatal; history just won't persist.
-  }
+  writeStore(HISTORY_KEY, historyMap);
 }
 
 // Convenience wrapper used by the app: load, append the attempt, persist.

@@ -163,6 +163,18 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
           >
             Back to Upload
           </button>
+          {isEditing && isDirty && (
+            // Reuses the (edit-mode-empty) import slot so changes can be saved
+            // without scrolling down to the bottom Save Changes button.
+            <button
+              type="button"
+              onClick={handleSaveEdit}
+              className="px-4 py-2 shadow-lg bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-all"
+              title="Save changes and return to upload"
+            >
+              Save Changes
+            </button>
+          )}
           {!isEditing && (
             <>
               <button
