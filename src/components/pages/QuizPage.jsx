@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/useTheme';
 import { useBackGuard } from '../../hooks/useBackGuard';
-import { isMultiChoice, isCorrectOption, isOptionChosen } from '../../utils/utils';
+import { isMultiChoice, isCorrectOption, isOptionChosen, calculateQuestionScore } from '../../utils/utils';
+import { useSound } from '../../hooks/useSound';
 import AnswerOption from '../ui/AnswerOption';
 import QuizProgressBar from '../ui/QuizProgressBar';
 import Explanation from '../ui/Explanation';
@@ -21,6 +22,9 @@ const QuizPage = ({
   const { isDarkMode, classes } = useTheme();
   const [showExitModal, setShowExitModal] = useState(false);
   const [multiSelection, setMultiSelection] = useState([]);
+
+  const playCorrect = useSound('/sounds/correct-pop.webm');
+  const playWrong = useSound('/sounds/wrong-pop.webm');
 
   const question = quizData.questions[currentQuestion];
   const userAnswer = answers[currentQuestion];
@@ -55,6 +59,11 @@ const QuizPage = ({
       );
     } else {
       setAnswers({ ...answers, [currentQuestion]: optionIndex });
+      if (isCorrectOption(question, optionIndex)) {
+        playCorrect();
+      } else {
+        playWrong();
+      }
     }
   };
 
@@ -62,6 +71,11 @@ const QuizPage = ({
   const handleConfirmMulti = () => {
     const sortedSelection = [...multiSelection].sort((a, b) => a - b);
     setAnswers({ ...answers, [currentQuestion]: sortedSelection });
+    if (calculateQuestionScore(question, sortedSelection) === 1) {
+      playCorrect();
+    } else {
+      playWrong();
+    }
   };
 
   const goToNext = () => {
