@@ -16,6 +16,7 @@ import {
   IconClose,
   IconDocument,
   IconArrowRight,
+  IconShuffle,
 } from '../ui/icons';
 
 const JSONUploadPage = ({
@@ -196,20 +197,110 @@ const JSONUploadPage = ({
         </div>
 
         <div className="space-y-4">
-          <div className="space-y-3">
-            <SettingToggle
-              label="Shuffle Questions"
-              description="Randomize question order"
-              checked={shuffleQuestions}
-              onChange={() => setShuffleQuestions(!shuffleQuestions)}
-            />
-            <SettingToggle
-              label="Shuffle Options"
-              description="Randomize answer choices"
-              checked={shuffleOptions}
-              onChange={() => setShuffleOptions(!shuffleOptions)}
-            />
-          </div>
+          {!uploadedFileInfo ? (
+            <label className="block">
+              <div className={`border-2 border-dashed ${isDarkMode ? 'border-indigo-500' : 'border-indigo-300'} rounded-lg p-6 min-h-[192px] flex flex-col items-center justify-center text-center hover:border-indigo-500 transition-colors cursor-pointer`}>
+                <input type="file" accept=".json,.txt" onChange={handleFileUpload} className="hidden" />
+                <IconUpload className={`w-12 h-12 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-400'} mx-auto mb-2`} />
+                <p className={`${classes.textColor} font-medium`}>Click to upload JSON or TXT file</p>
+                <p className={`${classes.mutedText} text-sm mt-1`}>or drag and drop</p>
+                <p className={`${classes.mutedText} text-xs mt-2`}>Supported formats: .json, .txt</p>
+              </div>
+            </label>
+          ) : (
+            <div className={`relative border-2 ${isDarkMode ? 'border-green-600 bg-green-900' : 'border-green-300 bg-green-50'} rounded-lg p-6 min-h-[192px] flex flex-col justify-between`}>
+              <div className="absolute top-2 right-2 flex items-center gap-1">
+                <button
+                  onClick={editCurrentQuiz}
+                  className={`p-1.5 rounded-full transition-all ${
+                    isDarkMode
+                      ? 'hover:bg-indigo-800 text-indigo-300 hover:text-indigo-200'
+                      : 'hover:bg-indigo-100 text-indigo-600 hover:text-indigo-700'
+                  }`}
+                  aria-label="Edit quiz"
+                  title="Edit questions"
+                >
+                  <IconPencil className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={handleRemoveFile}
+                  className={`p-1.5 rounded-full transition-all ${
+                    isDarkMode
+                      ? 'hover:bg-red-800 text-red-400 hover:text-red-300'
+                      : 'hover:bg-red-100 text-red-600 hover:text-red-700'
+                  }`}
+                  aria-label="Remove file"
+                  title="Remove file"
+                >
+                  <IconClose className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex items-start gap-4 pr-16">
+                <div className={`${isDarkMode ? 'bg-green-800' : 'bg-green-100'} p-3 rounded-lg flex-shrink-0`}>
+                  <IconDocument className={`w-8 h-8 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`font-semibold ${classes.textColor} mb-1 truncate`} title={uploadedFileInfo.name}>{uploadedFileInfo.name}</p>
+                  <p className={`${classes.mutedText} text-sm`}>{uploadedFileInfo.questionCount} questions loaded</p>
+                  {(() => {
+                    const chip = `inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium whitespace-nowrap ${classes.inputBgPlain} ${classes.mutedText}`;
+                    const parsedSize = parseInt(quizSize);
+                    const showSize = quizSizeMode === 'count' || (quizSizeMode === 'percentage' && parsedSize < 100);
+                    if (!shuffleQuestions && !shuffleOptions && !showSize) return null;
+                    return (
+                      <div className="flex items-center gap-1.5 mt-2">
+                        {showSize && <span className={chip}>{quizSizeMode === 'percentage' ? `${parsedSize} %` : `${parsedSize} #`}</span>}
+                        {shuffleQuestions && <span className={chip}><IconShuffle className="w-3.5 h-3.5" /> Questions</span>}
+                        {shuffleOptions && <span className={chip}><IconShuffle className="w-3.5 h-3.5" /> Options</span>}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              <Button
+                onClick={startQuiz}
+                className="w-full flex items-center justify-center gap-2"
+                title="Start Quiz"
+              >
+                Start Quiz
+                <IconArrowRight className="w-5 h-5" />
+              </Button>
+            </div>
+          )}
+
+          <ErrorBanner>{error}</ErrorBanner>
+
+          {library.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setShowLibrary(true)}
+              className={`w-full flex items-center justify-between px-4 py-3 ${classes.inputBgPlain} border-2 rounded-lg hover:border-indigo-500 transition-colors`}
+              title="Choose a previously uploaded quiz"
+            >
+              <span className={`font-medium ${classes.textColor}`}>
+                Choose a Saved Quiz
+                <span className={`ml-2 text-sm ${classes.mutedText}`}>({library.length})</span>
+              </span>
+              <IconChevronRight className={`w-5 h-5 ${classes.mutedText}`} />
+            </button>
+          ) : (
+            // No saved quizzes yet: offer the built-in sample in the same slot so
+            // a first-time visitor can load it straight into the card below.
+            <button
+              type="button"
+              onClick={() => selectFromLibrary(sampleQuizEntry)}
+              className={`w-full flex items-center justify-between px-4 py-3 ${classes.inputBgPlain} border-2 rounded-lg hover:border-indigo-500 transition-colors`}
+              title="Load the built-in sample quiz to try the app"
+            >
+              <span className={`font-medium ${classes.textColor}`}>
+                Load a sample quiz
+                <span className={`ml-2 text-sm ${classes.mutedText}`}>({sampleQuizEntry.questionCount} questions)</span>
+              </span>
+              <IconChevronRight className={`w-5 h-5 ${classes.mutedText}`} />
+            </button>
+          )}
 
           <div className={`p-4 ${classes.inputBgPlain} rounded-lg space-y-3`}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -263,97 +354,20 @@ const JSONUploadPage = ({
             </div>
           </div>
 
-          {library.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => setShowLibrary(true)}
-              className={`w-full flex items-center justify-between px-4 py-3 ${classes.inputBgPlain} border-2 rounded-lg hover:border-indigo-500 transition-colors`}
-              title="Choose a previously uploaded quiz"
-            >
-              <span className={`font-medium ${classes.textColor}`}>
-                Choose a Saved Quiz
-                <span className={`ml-2 text-sm ${classes.mutedText}`}>({library.length})</span>
-              </span>
-              <IconChevronRight className={`w-5 h-5 ${classes.mutedText}`} />
-            </button>
-          ) : (
-            // No saved quizzes yet: offer the built-in sample in the same slot so
-            // a first-time visitor can load it straight into the card below.
-            <button
-              type="button"
-              onClick={() => selectFromLibrary(sampleQuizEntry)}
-              className={`w-full flex items-center justify-between px-4 py-3 ${classes.inputBgPlain} border-2 rounded-lg hover:border-indigo-500 transition-colors`}
-              title="Load the built-in sample quiz to try the app"
-            >
-              <span className={`font-medium ${classes.textColor}`}>
-                Load a sample quiz
-                <span className={`ml-2 text-sm ${classes.mutedText}`}>({sampleQuizEntry.questionCount} questions)</span>
-              </span>
-              <IconChevronRight className={`w-5 h-5 ${classes.mutedText}`} />
-            </button>
-          )}
-
-          {!uploadedFileInfo ? (
-            <label className="block">
-              <div className={`border-2 border-dashed ${isDarkMode ? 'border-indigo-500' : 'border-indigo-300'} rounded-lg p-8 text-center hover:border-indigo-500 transition-colors cursor-pointer`}>
-                <input type="file" accept=".json,.txt" onChange={handleFileUpload} className="hidden" />
-                <IconUpload className={`w-12 h-12 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-400'} mx-auto mb-2`} />
-                <p className={`${classes.textColor} font-medium`}>Click to upload JSON or TXT file</p>
-                <p className={`${classes.mutedText} text-sm mt-1`}>or drag and drop</p>
-                <p className={`${classes.mutedText} text-xs mt-2`}>Supported formats: .json, .txt</p>
-              </div>
-            </label>
-          ) : (
-            <div className={`relative border-2 ${isDarkMode ? 'border-green-600 bg-green-900' : 'border-green-300 bg-green-50'} rounded-lg p-6`}>
-              <div className="absolute top-2 right-2 flex items-center gap-1">
-                <button
-                  onClick={editCurrentQuiz}
-                  className={`p-1.5 rounded-full transition-all ${
-                    isDarkMode
-                      ? 'hover:bg-indigo-800 text-indigo-300 hover:text-indigo-200'
-                      : 'hover:bg-indigo-100 text-indigo-600 hover:text-indigo-700'
-                  }`}
-                  aria-label="Edit quiz"
-                  title="Edit questions"
-                >
-                  <IconPencil className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={handleRemoveFile}
-                  className={`p-1.5 rounded-full transition-all ${
-                    isDarkMode
-                      ? 'hover:bg-red-800 text-red-400 hover:text-red-300'
-                      : 'hover:bg-red-100 text-red-600 hover:text-red-700'
-                  }`}
-                  aria-label="Remove file"
-                  title="Remove file"
-                >
-                  <IconClose className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="flex items-start gap-4 pr-16">
-                <div className={`${isDarkMode ? 'bg-green-800' : 'bg-green-100'} p-3 rounded-lg flex-shrink-0`}>
-                  <IconDocument className={`w-8 h-8 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`font-semibold ${classes.textColor} mb-1 break-words`}>{uploadedFileInfo.name}</p>
-                  <p className={`${classes.mutedText} text-sm`}>{uploadedFileInfo.questionCount} questions loaded</p>
-                </div>
-              </div>
-
-              <Button
-                onClick={startQuiz}
-                className="w-full mt-4 flex items-center justify-center gap-2"
-                title="Start Quiz"
-              >
-                Start Quiz
-                <IconArrowRight className="w-5 h-5" />
-              </Button>
-            </div>
-          )}
-
-          <ErrorBanner>{error}</ErrorBanner>
+          <div className="space-y-3">
+            <SettingToggle
+              label="Shuffle Questions"
+              description="Randomize question order"
+              checked={shuffleQuestions}
+              onChange={() => setShuffleQuestions(!shuffleQuestions)}
+            />
+            <SettingToggle
+              label="Shuffle Options"
+              description="Randomize answer choices"
+              checked={shuffleOptions}
+              onChange={() => setShuffleOptions(!shuffleOptions)}
+            />
+          </div>
         </div>
 
         <div className={`mt-6 p-4 ${classes.inputBgPlain} rounded-lg`}>

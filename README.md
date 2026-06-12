@@ -164,7 +164,7 @@ Before uploading your quiz:
 ### 3. Upload and Start
 
 1. Click the upload area or drag-and-drop your `.json` or `.txt` file
-2. The app validates your file and shows the total number of questions
+2. The app validates your file and shows the total number of questions, plus a quick summary of your selected settings (quiz size and which shuffles are on)
 3. Click Start quiz to begin
 4. Answer questions one at a time
 5. Navigate with Previous/Next buttons

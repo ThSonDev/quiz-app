@@ -19,6 +19,11 @@ const ConfigChips = ({ settings }) => {
 
   return (
     <div className="flex flex-wrap items-center gap-1.5 mt-2">
+      {showSize && (
+        <span className={chip}>
+          {quizSizeMode === 'percentage' ? `${quizSize} %` : `${quizSize} #`}
+        </span>
+      )}
       {shuffleQuestions && (
         <span className={chip}>
           <IconShuffle className="w-3.5 h-3.5" /> Questions
@@ -27,11 +32,6 @@ const ConfigChips = ({ settings }) => {
       {shuffleOptions && (
         <span className={chip}>
           <IconShuffle className="w-3.5 h-3.5" /> Options
-        </span>
-      )}
-      {showSize && (
-        <span className={chip}>
-          {quizSizeMode === 'percentage' ? `${quizSize} %` : `${quizSize} #`}
         </span>
       )}
     </div>
