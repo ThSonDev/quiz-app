@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react';
-import { processQuizData, readQuizFile } from '../../utils/utils.js';
+import { useEffect, useRef, useState } from 'react';
+import { processQuizData, readQuizFile, stripQuizExtension } from '../../utils/utils.js';
 import { sortLibrary, hashQuiz } from '../../utils/storage.js';
 import { loadHistory } from '../../utils/history.js';
 import { sampleQuizEntry } from '../../utils/sampleQuiz.js';
 import { useQuizLibrary } from '../../hooks/useQuizLibrary';
 import { useTheme } from '../../contexts/useTheme';
 import QuizLibraryPane from '../ui/QuizLibraryPane';
+import ShareQuizDialog from '../ui/ShareQuizDialog';
+import ConfigChips from '../ui/ConfigChips';
+import IconButton from '../ui/IconButton';
 import Button from '../ui/Button';
 import ErrorBanner from '../ui/ErrorBanner';
 import { SettingToggle } from '../ui/ToggleSwitch';
@@ -16,7 +19,7 @@ import {
   IconClose,
   IconDocument,
   IconArrowRight,
-  IconShuffle,
+  IconShare,
 } from '../ui/icons';
 
 const JSONUploadPage = ({
@@ -30,34 +33,60 @@ const JSONUploadPage = ({
   setUploadedFileInfo,
   setEditingQuiz,
   onOpenHistory,
+  initialSettings,
+  onShareConsumed,
 }) => {
   const { isDarkMode, classes } = useTheme();
   const [error, setError] = useState('');
-  const [shuffleQuestions, setShuffleQuestions] = useState(false);
-  const [shuffleOptions, setShuffleOptions] = useState(false);
-  const [quizSizeMode, setQuizSizeMode] = useState('percentage');
+  // Shuffle/size controls seed from `initialSettings` when the page was reached
+  // via a share link (so the friend lands on a pre-configured card); otherwise
+  // they use the normal defaults. Lazy initializers run once, so clearing the
+  // prop afterward (onShareConsumed) doesn't reset what the user then changes.
+  const [shuffleQuestions, setShuffleQuestions] = useState(() => initialSettings?.shuffleQuestions ?? false);
+  const [shuffleOptions, setShuffleOptions] = useState(() => initialSettings?.shuffleOptions ?? false);
+  const [quizSizeMode, setQuizSizeMode] = useState(() => initialSettings?.quizSizeMode ?? 'percentage');
   // Each mode keeps its own value so toggling never carries a count into the
   // percentage field (or vice versa) — a count of 7 is meaningless as "7%".
   // Percentage defaults to 100; count is seeded with the loaded quiz's full
   // question count (refreshed whenever a quiz is loaded). The active field
   // reads/writes whichever one matches the current mode.
-  const [percentSize, setPercentSize] = useState('100');
-  const [countSize, setCountSize] = useState('');
+  const [percentSize, setPercentSize] = useState(() =>
+    initialSettings?.quizSizeMode === 'percentage' && initialSettings.quizSize != null
+      ? String(initialSettings.quizSize)
+      : '100',
+  );
+  const [countSize, setCountSize] = useState(() =>
+    initialSettings?.quizSizeMode === 'count' && initialSettings.quizSize != null
+      ? String(initialSettings.quizSize)
+      : uploadedFileInfo?.questionCount
+        ? String(uploadedFileInfo.questionCount)
+        : '',
+  );
   const quizSize = quizSizeMode === 'percentage' ? percentSize : countSize;
   const setActiveSize = quizSizeMode === 'percentage' ? setPercentSize : setCountSize;
   // Saved-quiz library (localStorage), owned by the hook. The page remounts on
   // each return to upload, so it always reflects fresh storage.
   const { library, saveQuiz, removeFromLibrary, toggleBookmark } = useQuizLibrary();
   const [showLibrary, setShowLibrary] = useState(false);
+  // The quiz being shared ({ rawData, name }), or null. Set from either the
+  // loaded green card or a saved-quiz row in the library pane.
+  const [shareTarget, setShareTarget] = useState(null);
   // Results history per quiz id, read once on mount (the page remounts on each
   // return to upload, so it reflects attempts recorded during the session).
   const [historyMap] = useState(() => loadHistory());
 
   // Returning to upload should start at the top, not inherit the previous
-  // page's scroll position.
+  // page's scroll position. Also, once a share link's settings have seeded the
+  // controls above, tell App to clear them so a later remount uses plain
+  // defaults (guarded by a ref so it fires exactly once).
+  const shareConsumedRef = useRef(false);
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
+    if (initialSettings && !shareConsumedRef.current && onShareConsumed) {
+      shareConsumedRef.current = true;
+      onShareConsumed();
+    }
+  }, [initialSettings, onShareConsumed]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -75,9 +104,12 @@ const JSONUploadPage = ({
       return;
     }
 
+    // Drop the .json/.txt extension from the display/library name so a later
+    // download (e.g. from the share dialog) doesn't pile extensions up.
+    const name = stripQuizExtension(file.name);
     setUploadedFileInfo({
       file: file,
-      name: file.name,
+      name,
       questionCount: data.questions.length,
       rawData: data,
     });
@@ -88,7 +120,7 @@ const JSONUploadPage = ({
     setCountSize(String(data.questions.length));
 
     // Persist to the library (dedupes identical content by bumping time).
-    saveQuiz(data, file.name);
+    saveQuiz(data, name);
   };
 
   const handleRemoveFile = () => {
@@ -210,52 +242,33 @@ const JSONUploadPage = ({
           ) : (
             <div className={`relative border-2 ${isDarkMode ? 'border-green-600 bg-green-900' : 'border-green-300 bg-green-50'} rounded-lg p-6 min-h-[192px] flex flex-col justify-between`}>
               <div className="absolute top-2 right-2 flex items-center gap-1">
-                <button
-                  onClick={editCurrentQuiz}
-                  className={`p-1.5 rounded-full transition-all ${
-                    isDarkMode
-                      ? 'hover:bg-indigo-800 text-indigo-300 hover:text-indigo-200'
-                      : 'hover:bg-indigo-100 text-indigo-600 hover:text-indigo-700'
-                  }`}
-                  aria-label="Edit quiz"
-                  title="Edit questions"
+                <IconButton
+                  tone="emerald"
+                  onClick={() => setShareTarget({ rawData: uploadedFileInfo.rawData, name: uploadedFileInfo.name })}
+                  aria-label="Share quiz"
+                  title="Share via link"
                 >
+                  <IconShare className="w-5 h-5" />
+                </IconButton>
+                <IconButton tone="indigo" onClick={editCurrentQuiz} aria-label="Edit quiz" title="Edit questions">
                   <IconPencil className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={handleRemoveFile}
-                  className={`p-1.5 rounded-full transition-all ${
-                    isDarkMode
-                      ? 'hover:bg-red-800 text-red-400 hover:text-red-300'
-                      : 'hover:bg-red-100 text-red-600 hover:text-red-700'
-                  }`}
-                  aria-label="Remove file"
-                  title="Remove file"
-                >
+                </IconButton>
+                <IconButton tone="red" onClick={handleRemoveFile} aria-label="Remove file" title="Remove file">
                   <IconClose className="w-5 h-5" />
-                </button>
+                </IconButton>
               </div>
 
-              <div className="flex items-start gap-4 pr-16">
+              <div className="flex items-start gap-4 pr-28">
                 <div className={`${isDarkMode ? 'bg-green-800' : 'bg-green-100'} p-3 rounded-lg flex-shrink-0`}>
                   <IconDocument className={`w-8 h-8 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className={`font-semibold ${classes.textColor} mb-1 truncate`} title={uploadedFileInfo.name}>{uploadedFileInfo.name}</p>
                   <p className={`${classes.mutedText} text-sm`}>{uploadedFileInfo.questionCount} questions loaded</p>
-                  {(() => {
-                    const chip = `inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium whitespace-nowrap ${classes.inputBgPlain} ${classes.mutedText}`;
-                    const parsedSize = parseInt(quizSize);
-                    const showSize = quizSizeMode === 'count' || (quizSizeMode === 'percentage' && parsedSize < 100);
-                    if (!shuffleQuestions && !shuffleOptions && !showSize) return null;
-                    return (
-                      <div className="flex items-center gap-1.5 mt-2">
-                        {showSize && <span className={chip}>{quizSizeMode === 'percentage' ? `${parsedSize} %` : `${parsedSize} #`}</span>}
-                        {shuffleQuestions && <span className={chip}><IconShuffle className="w-3.5 h-3.5" /> Questions</span>}
-                        {shuffleOptions && <span className={chip}><IconShuffle className="w-3.5 h-3.5" /> Options</span>}
-                      </div>
-                    );
-                  })()}
+                  <ConfigChips
+                    settings={{ shuffleQuestions, shuffleOptions, quizSize: parseInt(quizSize, 10), quizSizeMode }}
+                    className="mt-2"
+                  />
                 </div>
               </div>
 
@@ -430,7 +443,22 @@ const JSONUploadPage = ({
           onToggleBookmark={toggleBookmark}
           onRemove={removeFromLibrary}
           onOpenHistory={onOpenHistory}
+          onShare={(entry) => setShareTarget({ rawData: entry.rawData, name: entry.name })}
           onClose={() => setShowLibrary(false)}
+        />
+      )}
+
+      {shareTarget && (
+        <ShareQuizDialog
+          rawData={shareTarget.rawData}
+          name={shareTarget.name}
+          settings={{
+            shuffleQuestions,
+            shuffleOptions,
+            quizSize: parseInt(quizSize, 10) || 100,
+            quizSizeMode,
+          }}
+          onClose={() => setShareTarget(null)}
         />
       )}
     </div>

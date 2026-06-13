@@ -2,17 +2,16 @@ import { useState } from 'react';
 import { useTheme } from '../../contexts/useTheme';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { getAttempts } from '../../utils/history';
-import { IconClose, IconStar, IconTrash, IconHistory } from './icons';
-
-const formatTime = (ts) =>
-  new Date(ts).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+import { formatTimestamp } from '../../utils/utils';
+import IconButton from './IconButton';
+import { IconClose, IconStar, IconTrash, IconHistory, IconShare } from './icons';
 
 // Slide-over panel listing the user's saved quizzes. Presentational: the parent
 // owns the entries and persistence, this only fires callbacks. Entries arrive
 // pre-sorted (bookmarked first, newest first). `historyMap` lets each entry
 // surface a "Results history" link when that quiz has past attempts; selecting
 // it calls onOpenHistory without closing this pane (the history pane stacks on top).
-const QuizLibraryPane = ({ entries, historyMap = {}, onSelect, onToggleBookmark, onRemove, onOpenHistory, onClose }) => {
+const QuizLibraryPane = ({ entries, historyMap = {}, onSelect, onToggleBookmark, onRemove, onOpenHistory, onShare, onClose }) => {
   const { isDarkMode, classes } = useTheme();
   // Two-step delete so a stray tap can't wipe a saved quiz.
   const [confirmRemoveId, setConfirmRemoveId] = useState(null);
@@ -71,7 +70,7 @@ const QuizLibraryPane = ({ entries, historyMap = {}, onSelect, onToggleBookmark,
                     <p className={`font-semibold ${classes.textColor} break-words`}>{e.name}</p>
                     <p className={`text-sm ${classes.mutedText}`}>{e.questionCount} questions</p>
                     <p className={`text-xs ${classes.mutedText} mt-1`}>
-                      {e.isSample ? 'Built-in sample — always here to try' : formatTime(e.uploadedAt)}
+                      {e.isSample ? 'Built-in sample — always here to try' : formatTimestamp(e.uploadedAt)}
                     </p>
                   </button>
 
@@ -84,6 +83,11 @@ const QuizLibraryPane = ({ entries, historyMap = {}, onSelect, onToggleBookmark,
                       </span>
                     ) : (
                       <>
+                        {onShare && (
+                          <IconButton tone="emerald" onClick={() => onShare(e)} aria-label="Share" title="Share via link">
+                            <IconShare className="w-5 h-5" />
+                          </IconButton>
+                        )}
                         <button
                           type="button"
                           onClick={() => onToggleBookmark(e.id)}
@@ -97,19 +101,9 @@ const QuizLibraryPane = ({ entries, historyMap = {}, onSelect, onToggleBookmark,
                         >
                           <IconStar className="w-5 h-5" fill={e.bookmarked ? 'currentColor' : 'none'} />
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfirmRemoveId(e.id)}
-                          className={`p-1.5 rounded-full transition-colors ${
-                            isDarkMode
-                              ? 'text-red-400 hover:bg-red-900/40'
-                              : 'text-red-600 hover:bg-red-100'
-                          }`}
-                          aria-label="Remove"
-                          title="Remove from library"
-                        >
+                        <IconButton tone="red" onClick={() => setConfirmRemoveId(e.id)} aria-label="Remove" title="Remove from library">
                           <IconTrash className="w-5 h-5" />
-                        </button>
+                        </IconButton>
                       </>
                     )}
                   </div>

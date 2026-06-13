@@ -6,6 +6,7 @@ import { useSound } from '../../hooks/useSound';
 import AnswerOption from '../ui/AnswerOption';
 import QuizProgressBar from '../ui/QuizProgressBar';
 import Explanation from '../ui/Explanation';
+import RichText from '../ui/RichText';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { IconReturnUpload, IconChevronLeft, IconArrowRight } from '../ui/icons';
@@ -130,7 +131,7 @@ const QuizPage = ({
               Multiple Choices
             </p>
           )}
-          <h2 className={`text-2xl font-bold ${classes.textColor} mb-6`}>{question.question}</h2>
+          <h2 className={`text-2xl font-bold ${classes.textColor} mb-6`}><RichText>{question.question}</RichText></h2>
 
           <div className="space-y-3 mb-6">
             {question.options.map((option, idx) => (

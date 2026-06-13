@@ -26,4 +26,10 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
+  {
+    // Edge proxy under /api runs on Vercel's runtime: web globals (already in the
+    // browser set above) plus Node-style process.env for configuration.
+    files: ['api/**/*.js'],
+    languageOptions: { globals: globals.node },
+  },
 ])

@@ -1,5 +1,6 @@
 import { useTheme } from '../../contexts/useTheme';
 import { optionLabel } from '../../utils/utils';
+import RichText from './RichText';
 import { IconCheck, IconClose } from './icons';
 
 // One answer button in the quiz runner. Styling depends on three flags:
@@ -46,7 +47,7 @@ const AnswerOption = ({ option, index, isSelected, isCorrectOption, isAnswered, 
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <span className="font-bold mr-3 opacity-70">{optionLabel(index)}.</span>
-          <span>{option}</span>
+          <RichText>{option}</RichText>
         </div>
 
         {isAnswered && (

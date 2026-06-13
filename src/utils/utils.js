@@ -144,21 +144,78 @@ export function processQuizData(data, settings) {
 // { data } on success or { error } on parse/validation failure. Shared by the
 // upload page and the creator's import. Does not enforce the >= 2 question
 // minimum — callers add that where it applies.
+// Parse a raw JSON string into validated quiz data. Shared by the file-upload
+// path (readQuizFile) and the share-link fetch path so both run the exact same
+// validation. Returns { data } or { error }; does not enforce the >= 2 question
+// minimum (callers add that where it applies).
+export function parseQuizText(text) {
+    let data;
+    try {
+        data = JSON.parse(text);
+    } catch {
+        return { error: 'Invalid JSON file format' };
+    }
+    const validationError = validateQuizData(data);
+    return validationError ? { error: validationError } : { data };
+}
+
 export function readQuizFile(file) {
     return new Promise((resolve) => {
         const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const data = JSON.parse(event.target.result);
-                const validationError = validateQuizData(data);
-                if (validationError) return resolve({ error: validationError });
-                resolve({ data });
-            } catch {
-                resolve({ error: 'Invalid JSON file format' });
-            }
-        };
+        reader.onload = (event) => resolve(parseQuizText(event.target.result));
+        reader.onerror = () => resolve({ error: 'Could not read the file' });
         reader.readAsText(file);
     });
+}
+
+// Strips a trailing .json/.txt extension from a quiz name (case-insensitive).
+// Used when ingesting a quiz (upload / share import) so the stored display name
+// is extension-free — otherwise a later download re-appends one and names pile
+// up as "quiz.txt.json.json".
+export function stripQuizExtension(name) {
+    return (name || '').replace(/\.(json|txt)$/i, '');
+}
+
+// Parses the lightweight markup quiz text supports into a structure the
+// RichText component renders. Features:
+//   - a newline ("\n" in the JSON) splits the text into separate lines, each
+//     rendered on its own row (HTML would otherwise collapse the newline);
+//   - "**text**" marks an extra-bold run;
+//   - "__text__" marks an underlined run.
+// Returns an array of lines; each line is an array of { text, bold, underline }
+// segments (an empty line is an empty array). Non-string input → a single
+// empty line. We parse to plain data (not HTML) so quiz content can never
+// inject markup — the component only ever renders text, <strong>, and <u>.
+// Bold and underline don't nest: whichever marker opens first wins for that run.
+export function parseRichText(raw) {
+    const text = typeof raw === 'string' ? raw : raw == null ? '' : String(raw);
+    return text.split('\n').map((line) => {
+        const segments = [];
+        const re = /\*\*(.+?)\*\*|__(.+?)__/g;
+        let lastIndex = 0;
+        let match;
+        while ((match = re.exec(line)) !== null) {
+            if (match.index > lastIndex) {
+                segments.push({ text: line.slice(lastIndex, match.index), bold: false, underline: false });
+            }
+            if (match[1] !== undefined) {
+                segments.push({ text: match[1], bold: true, underline: false });
+            } else {
+                segments.push({ text: match[2], bold: false, underline: true });
+            }
+            lastIndex = match.index + match[0].length;
+        }
+        if (lastIndex < line.length) {
+            segments.push({ text: line.slice(lastIndex), bold: false, underline: false });
+        }
+        return segments;
+    });
+}
+
+// Locale date+time for saved-quiz / attempt timestamps. Shared by the library
+// and history panes so they format identically.
+export function formatTimestamp(ts) {
+    return new Date(ts).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
 
 // Triggers a browser download of the quiz JSON. Content is identical for

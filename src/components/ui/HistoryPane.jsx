@@ -1,42 +1,9 @@
 import { useState } from 'react';
 import { useTheme } from '../../contexts/useTheme';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
-import { IconClose, IconShuffle, IconHistory } from './icons';
-
-const formatTime = (ts) =>
-  new Date(ts).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-
-// The configuration chips for one attempt: shuffle-questions, shuffle-options,
-// and the size mode. A fully-default run (no shuffles, 100%) shows nothing.
-const ConfigChips = ({ settings }) => {
-  const { classes } = useTheme();
-  if (!settings) return null;
-  const { shuffleQuestions, shuffleOptions, quizSize, quizSizeMode } = settings;
-  const chip = `inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${classes.inputBgPlain} ${classes.mutedText}`;
-
-  const showSize = quizSizeMode === 'count' || (quizSizeMode === 'percentage' && quizSize < 100);
-  if (!shuffleQuestions && !shuffleOptions && !showSize) return null;
-
-  return (
-    <div className="flex flex-wrap items-center gap-1.5 mt-2">
-      {showSize && (
-        <span className={chip}>
-          {quizSizeMode === 'percentage' ? `${quizSize} %` : `${quizSize} #`}
-        </span>
-      )}
-      {shuffleQuestions && (
-        <span className={chip}>
-          <IconShuffle className="w-3.5 h-3.5" /> Questions
-        </span>
-      )}
-      {shuffleOptions && (
-        <span className={chip}>
-          <IconShuffle className="w-3.5 h-3.5" /> Options
-        </span>
-      )}
-    </div>
-  );
-};
+import { formatTimestamp } from '../../utils/utils';
+import ConfigChips from './ConfigChips';
+import { IconClose, IconHistory } from './icons';
 
 // Slide-over panel listing a single quiz's past attempts. Same style/behaviour
 // as QuizLibraryPane: presentational, parent owns the data and navigation.
@@ -114,9 +81,9 @@ const HistoryPane = ({ quizName, attempts, currentAttemptId, onSelect, onClose }
                       <span className={`text-sm font-normal ${classes.mutedText}`}>/10</span>
                     </p>
                   </div>
-                  <p className={`text-xs ${classes.mutedText} mt-1`}>{formatTime(a.takenAt)}</p>
+                  <p className={`text-xs ${classes.mutedText} mt-1`}>{formatTimestamp(a.takenAt)}</p>
                   {a.reviewable ? (
-                    <ConfigChips settings={a.settings} />
+                    <ConfigChips settings={a.settings} wrap className="mt-2" />
                   ) : (
                     <p className={`text-xs italic ${classes.mutedText} mt-2`}>
                       Score only — saved before this quiz was edited.

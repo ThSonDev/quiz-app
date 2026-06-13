@@ -58,6 +58,8 @@ npm test
 
 ```
 quiz-app/
+├── api/
+│   └── proxy.js                      # Stateless Edge proxy for share-link fetches
 ├── src/
 │   ├── App.jsx                       # Top-level state + page routing
 │   ├── main.jsx                      # React entry, wraps app in ThemeProvider
@@ -81,10 +83,14 @@ quiz-app/
 │   │       ├── ThemeToggle.jsx       # Dark/light toggle
 │   │       ├── QuizLibraryPane.jsx   # Slide-over list of saved quizzes
 │   │       ├── HistoryPane.jsx       # Slide-over list of a quiz's past attempts
+│   │       ├── ShareQuizDialog.jsx   # Build a shareable quiz link
+│   │       ├── ConfigChips.jsx       # Size/shuffle settings chips
+│   │       ├── IconButton.jsx        # Small round icon action button
 │   │       ├── Modal.jsx             # Generic centered confirm modal
 │   │       ├── AnswerOption.jsx      # Answer button used by QuizPage
 │   │       ├── QuizProgressBar.jsx   # Progress card for QuizPage
 │   │       ├── Explanation.jsx       # Shared explanation panel
+│   │       ├── RichText.jsx          # Renders quiz text (line breaks + highlight/underline markup)
 │   │       ├── QuestionEditor.jsx    # One question card in the creator
 │   │       └── OptionEditor.jsx      # One option row in the creator
 │   ├── hooks/
@@ -97,6 +103,8 @@ quiz-app/
 │       ├── sampleQuiz.js             # Built-in 10-question sample quiz
 │       ├── storage.js                # Saved-quiz library
 │       ├── history.js                # Results history per quiz
+│       ├── share.js                  # Share-link parse/build + proxy fetch
+│       ├── urlSafety.js              # SSRF/origin guards for the proxy
 │       ├── persistence.js            # In-memory cache + IndexedDB write-through (localStorage fallback)
 │       └── idb.js                    # Tiny IndexedDB key-value wrapper
 ├── tests/
@@ -150,6 +158,14 @@ Create a `.json` (or `.txt`) file with the following structure:
 | `explanation` | string | ❌ No | Explanation shown after answering |
 | `shuffle` | number | ❌ No | Set to `0` to prevent option shuffling for this question |
 
+#### Text formatting
+
+Questions, options, and explanations support a few lightweight formatting marks:
+
+- **Line breaks** — a newline in the text starts a new line. In JSON write `\n`, e.g. `"First line.\nSecond line."`
+- **Highlight** — wrap text in double asterisks to emphasize it in purple (stands out in both light and dark mode): `"The **important** part is highlighted."`
+- **Underline** — wrap text in double underscores to underline it: `"The __key__ word is underlined."`
+
 ### 2. Configure Shuffle Settings
 
 Before uploading your quiz:
@@ -188,6 +204,19 @@ Every quiz you upload is saved in your browser, so you can come back later and r
 - Remove quizzes you no longer want
 
 Quizzes that share a name and question count but have different content are kept as separate entries, distinguished by upload time. This data lives only in the current browser (no account, no sync); clearing site data removes it.
+
+#### Share a quiz by link
+
+You can send a friend a link that loads one of your quizzes with your chosen settings already applied.
+
+1. Set the shuffle/size options you want to share, then click the **Share** button — either on the loaded-quiz card or next to any quiz in your **Saved Quizzes** list.
+2. In the dialog, **Download** your quiz file, then upload it somewhere with a public link — a [GitHub gist](https://gist.github.com/) "Raw" URL works well.
+3. Paste that public link, click **Generate link**, and copy it. (Optionally hit **Test link** to confirm it loads.)
+4. Send the link. When your friend opens it, the quiz and your settings load automatically, ready to start.
+
+> Prefer not to host a file? You can also just **send the downloaded quiz file** to your friend and let them upload it themselves — hosting is only needed when you want a one-click link.
+
+The first time they open it, their app fetches the quiz from your link and saves it to their browser. If they open the same link again later, it loads instantly from their browser with no re-download — and works offline. Your friend never needs an account, and nothing about them is stored anywhere but their own browser.
 
 ### 4. View Results
 
@@ -268,9 +297,11 @@ Questions are paginated 10 per page; the file name and download/save controls st
 
 Imported files are validated against the schema above before loading; if you already have questions in progress, the editor asks before replacing them. The downloaded file matches the same JSON schema, so you can immediately upload it back to take the quiz. Both extensions contain identical content; pick whichever your tooling prefers.
 
-## Data & storage
+## Privacy & storage
 
-Everything you create — your theme, saved quizzes, and results history — stays in **your browser**. There's no account, no sign-in, and no syncing across devices. Saved quizzes and history are kept in your browser's built-in database (IndexedDB), which has plenty of room for lots of quizzes and a long history. Clearing your browser's site data removes it.
+**Privacy-first: this app never collects or stores your personal information.** There's no account, no sign-in, no tracking, and no syncing across devices. Everything you create — your theme, saved quizzes, and results history — stays in **your browser**, in its built-in database (IndexedDB), which has plenty of room for lots of quizzes and a long history. Clearing your browser's site data removes it.
+
+If a quiz-sharing feature ever fetches a file from a link you provide, it does so through a **stateless helper that stores nothing** — it forwards the request and forgets it; no user data is ever saved server-side. (As with any website, the hosting platform still sees ordinary transport details like your IP address at the network level — we simply never persist them.)
 
 ## Contributing
 

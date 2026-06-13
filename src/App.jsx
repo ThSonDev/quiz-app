@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import JSONUploadPage from './components/pages/JSONUploadPage';
 import QuizPage from './components/pages/QuizPage';
 import ResultPage from './components/pages/ResultPage';
@@ -6,9 +6,12 @@ import ReviewPage from './components/pages/ReviewPage';
 import QuizCreatorPage from './components/pages/QuizCreatorPage';
 import HistoryPane from './components/ui/HistoryPane';
 import ThemeToggle from './components/ui/ThemeToggle';
+import Modal from './components/ui/Modal';
+import Button from './components/ui/Button';
 import { useTheme } from './contexts/useTheme';
 import { processQuizData } from './utils/utils';
-import { loadLibrary, saveLibrary, replaceQuiz, hashQuiz } from './utils/storage';
+import { loadLibrary, saveLibrary, replaceQuiz, upsertQuiz, hashQuiz } from './utils/storage';
+import { parseShareParams, fetchSharedQuiz, quizNameFromUrl } from './utils/share';
 import {
   loadHistory,
   saveHistory,
@@ -62,6 +65,67 @@ const App = () => {
   // The id of the just-finished live attempt, so the history pane (opened from
   // its review) can badge it as "This attempt" and block re-opening it.
   const [currentAttemptId, setCurrentAttemptId] = useState(null);
+
+  // --- Share-link import state ----------------------------------------------
+  // When the app is opened via a share link (?quiz=...), we resolve the quiz
+  // (from IndexedDB if already saved, else fetched through /api/proxy) and land
+  // on a pre-configured upload card. `shareStatus` drives a loading/error
+  // overlay; `pendingShareSettings` seeds the upload page's controls once.
+  const [shareStatus, setShareStatus] = useState('idle'); // 'idle' | 'loading' | 'error'
+  const [shareError, setShareError] = useState('');
+  const [pendingShareSettings, setPendingShareSettings] = useState(null);
+  const importedRef = useRef(false);
+
+  // Load the resolved quiz into the live slots and the upload card.
+  const applyImportedQuiz = (rawData, name, settings) => {
+    setOriginalQuizData(rawData);
+    setUploadedFileInfo({ name, questionCount: rawData.questions.length, rawData });
+    setActiveSettings(settings);
+    setPendingShareSettings(settings);
+    setShareStatus('idle');
+    setView('upload');
+  };
+
+  const importSharedQuiz = async ({ url, qid, settings }) => {
+    // Already in the library (matched by content hash)? Use it — no network
+    // request, works fully offline. This is what saves a returning friend's
+    // re-fetch.
+    if (qid) {
+      const existing = loadLibrary().find((e) => e.id === qid);
+      if (existing) {
+        applyImportedQuiz(existing.rawData, existing.name, settings);
+        return;
+      }
+    }
+    // Otherwise fetch through the proxy, validate, and persist.
+    setShareStatus('loading');
+    const { data, error } = await fetchSharedQuiz(url);
+    if (error) {
+      setShareError(error);
+      setShareStatus('error');
+      return;
+    }
+    if (data.questions.length < 2) {
+      setShareError('Shared quiz must contain at least 2 questions.');
+      setShareStatus('error');
+      return;
+    }
+    const name = quizNameFromUrl(url);
+    saveLibrary(upsertQuiz(loadLibrary(), { rawData: data, name }));
+    applyImportedQuiz(data, name, settings);
+  };
+
+  // Resolve a share link exactly once on first load, then strip the params from
+  // the URL so a refresh doesn't re-import (and the visible URL stays clean).
+  useEffect(() => {
+    if (importedRef.current) return;
+    importedRef.current = true;
+    const parsed = parseShareParams(window.location.search);
+    if (!parsed) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    importSharedQuiz(parsed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isHistoryView = viewingAttempt != null;
   const effectiveQuizData = isHistoryView ? viewingAttempt.attempt.processedQuizData : processedQuizData;
@@ -179,6 +243,8 @@ const App = () => {
           setUploadedFileInfo={setUploadedFileInfo}
           setEditingQuiz={setEditingQuiz}
           onOpenHistory={openHistoryFromLibrary}
+          initialSettings={pendingShareSettings}
+          onShareConsumed={() => setPendingShareSettings(null)}
         />
       )}
 
@@ -238,6 +304,24 @@ const App = () => {
           onSelect={selectHistoryAttempt}
           onClose={() => setHistoryPane(null)}
         />
+      )}
+
+      {shareStatus === 'loading' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className={`${classes.cardBg} rounded-xl shadow-2xl p-8 max-w-sm w-full text-center animate-fadeInUp`}>
+            <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className={`font-medium ${classes.textColor}`}>Loading shared quiz…</p>
+            <p className={`text-sm ${classes.mutedText} mt-1`}>Fetching from the link</p>
+          </div>
+        </div>
+      )}
+
+      {shareStatus === 'error' && (
+        <Modal title="Couldn't open shared quiz" description={shareError}>
+          <Button onClick={() => setShareStatus('idle')} className="w-full">
+            Go to upload
+          </Button>
+        </Modal>
       )}
     </div>
   );

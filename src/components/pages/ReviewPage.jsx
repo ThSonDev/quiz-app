@@ -7,6 +7,7 @@ import {
 } from '../../utils/utils';
 import { useTheme } from '../../contexts/useTheme';
 import Explanation from '../ui/Explanation';
+import RichText from '../ui/RichText';
 import { IconHistory } from '../ui/icons';
 
 const ReviewPage = ({ quizData, answers, setView, onOpenHistory }) => {
@@ -70,7 +71,7 @@ const ReviewPage = ({ quizData, answers, setView, onOpenHistory }) => {
               <div key={idx} className={`${classes.cardBg} rounded-xl shadow-lg p-6`}>
                 <div className="flex items-start justify-between mb-4">
                   <h3 className={`text-xl font-bold ${classes.textColor} flex-1`}>
-                    {idx + 1}. {question.question}
+                    {idx + 1}. <RichText>{question.question}</RichText>
                   </h3>
                   <span className={badgeFor(rawScore)}>{parseFloat(displayedScore)}</span>
                 </div>
@@ -102,7 +103,7 @@ const ReviewPage = ({ quizData, answers, setView, onOpenHistory }) => {
                       <div key={optIdx} className={optionClass}>
                         <div className="flex items-center">
                           <span className="font-bold mr-2">{optionLabel(optIdx)}.</span>
-                          <span>{option}</span>
+                          <RichText>{option}</RichText>
                         </div>
                         <div className="flex items-center">
                           {missedCorrect && (
