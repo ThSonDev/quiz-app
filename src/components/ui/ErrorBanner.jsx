@@ -7,7 +7,7 @@ const ErrorBanner = ({ children }) => {
   if (!children) return null;
 
   return (
-    <div className={`${
+    <div role="alert" className={`${
       isDarkMode ? 'bg-red-900 border-red-700 text-red-300' : 'bg-red-50 border-red-200 text-red-700'
     } border px-4 py-3 rounded-lg`}>
       <p className="text-sm font-medium">{children}</p>
