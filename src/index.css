@@ -1,3 +1,32 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  /* Visible keyboard focus for every interactive element. Buttons/links had no
+     focus indicator at all; this one rule covers them. Inputs that opt out with
+     `outline-none` keep their own `focus:border-indigo-500` indicator. */
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  [tabindex]:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid #6366f1; /* indigo-500, readable in both themes */
+    outline-offset: 2px;
+  }
+}
+
+/* Respect users who ask for less motion: neutralize the entrance animations and
+   the loading spinner instead of running them. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
