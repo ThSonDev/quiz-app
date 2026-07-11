@@ -6,11 +6,9 @@ const STORAGE_KEY = 'quizAppTheme';
 // Centralizes the dark/light flag and the Tailwind class strings derived from
 // it. Consumers read via the useTheme hook.
 export function ThemeProvider({ children }) {
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  useEffect(() => {
-    if (localStorage.getItem(STORAGE_KEY) === 'dark') setIsDarkMode(true);
-  }, []);
+  // Read synchronously in the initializer so the first paint already matches the
+  // saved theme — a post-mount read would flash the light theme for dark users.
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem(STORAGE_KEY) === 'dark');
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, isDarkMode ? 'dark' : 'light');
@@ -24,8 +22,8 @@ export function ThemeProvider({ children }) {
     innerBg: isDarkMode ? 'bg-gray-700' : 'bg-gray-50',
     inputBgPlain: isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-300',
     inputBg: isDarkMode
-      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500'
-      : 'bg-gray-50 border-gray-300 text-gray-800 placeholder-gray-400',
+      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+      : 'bg-gray-50 border-gray-300 text-gray-800 placeholder-gray-500',
     textColor: isDarkMode ? 'text-gray-200' : 'text-gray-800',
     mutedText: isDarkMode ? 'text-gray-400' : 'text-gray-600',
     secondaryBtn: isDarkMode

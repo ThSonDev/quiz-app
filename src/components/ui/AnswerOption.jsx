@@ -28,8 +28,8 @@ const AnswerOption = ({ option, index, isSelected, isCorrectOption, isAnswered, 
         : 'bg-green-50 border-green-500 border-dashed text-green-800';
     } else {
       className += isDarkMode
-        ? 'bg-gray-800 border-gray-700 text-gray-500 opacity-50'
-        : 'bg-gray-50 border-gray-200 text-gray-400 opacity-50';
+        ? 'bg-gray-800 border-gray-700 text-gray-400'
+        : 'bg-gray-50 border-gray-200 text-gray-500';
     }
   } else if (isSelected) {
     className += isDarkMode
