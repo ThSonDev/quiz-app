@@ -326,7 +326,7 @@ const JSONUploadPage = ({
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={() => setQuizSizeMode('percentage')}
-                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                  className={`px-3 py-1 min-h-[44px] min-w-[44px] rounded-md text-sm font-medium transition-colors ${
                     quizSizeMode === 'percentage'
                       ? 'bg-indigo-600 text-white'
                       : `${isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-300 text-gray-700'}`
@@ -337,7 +337,7 @@ const JSONUploadPage = ({
                 </button>
                 <button
                   onClick={() => setQuizSizeMode('count')}
-                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                  className={`px-3 py-1 min-h-[44px] min-w-[44px] rounded-md text-sm font-medium transition-colors ${
                     quizSizeMode === 'count'
                       ? 'bg-indigo-600 text-white'
                       : `${isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-300 text-gray-700'}`

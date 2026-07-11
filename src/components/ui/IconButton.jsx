@@ -26,7 +26,7 @@ const IconButton = ({ tone = 'indigo', className = '', children, ...props }) => 
   return (
     <button
       type="button"
-      className={`p-1.5 rounded-full transition-all ${isDarkMode ? t.dark : t.light} ${className}`}
+      className={`relative p-1.5 rounded-full transition-all before:absolute before:content-[''] before:-inset-1.5 ${isDarkMode ? t.dark : t.light} ${className}`}
       {...props}
     >
       {children}
