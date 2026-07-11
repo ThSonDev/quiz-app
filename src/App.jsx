@@ -317,7 +317,7 @@ const App = () => {
       )}
 
       {shareStatus === 'error' && (
-        <Modal title="Couldn't open shared quiz" description={shareError}>
+        <Modal title="Couldn't open shared quiz" description={shareError} onClose={() => setShareStatus('idle')}>
           <Button onClick={() => setShareStatus('idle')} className="w-full">
             Go to upload
           </Button>

@@ -79,6 +79,7 @@ const ShareQuizDialog = ({ rawData, name, settings, onClose }) => {
     <Modal
       title="Share this quiz"
       description="Send a friend a link that loads this quiz with your current settings. Three quick steps:"
+      onClose={onClose}
     >
       <div>
         <p className={`text-sm font-medium ${classes.textColor} mb-1`}>1. Download your quiz file</p>

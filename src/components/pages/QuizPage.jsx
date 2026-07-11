@@ -202,6 +202,7 @@ const QuizPage = ({
         <Modal
           title="Exit Quiz?"
           description="Are you sure you want to exit? Your progress will be lost."
+          onClose={() => setShowExitModal(false)}
         >
           <Button variant="danger" onClick={handleExit} className="w-full" title="Exit">
             Yes, Exit Quiz

@@ -157,7 +157,7 @@ const ResultPage = ({
       </div>
 
       {showRetryModal && (
-        <Modal title="Retry Quiz" description="Choose how you want to retry the quiz:">
+        <Modal title="Retry Quiz" description="Choose how you want to retry the quiz:" onClose={() => setShowRetryModal(false)}>
           <Button
             onClick={() => { setShowRetryModal(false); onRetrySameLayout(); }}
             className="w-full"

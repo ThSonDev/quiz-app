@@ -312,6 +312,7 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
         <Modal
           title="Discard quiz?"
           description="Your unsaved quiz will be lost. Download it first if you want to keep it."
+          onClose={() => setShowExitModal(false)}
         >
           <Button type="button" variant="danger" onClick={confirmExit} className="w-full">
             Yes, Discard
@@ -331,6 +332,7 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
         <Modal
           title="Save changes?"
           description="Editing changes this quiz, so its saved attempts can no longer be opened for review — only their final scores will be kept in Results history."
+          onClose={() => setShowHistoryWarn(false)}
         >
           <Button type="button" variant="success" onClick={performSaveEdit} className="w-full">
             Save Changes
@@ -350,6 +352,7 @@ const QuizCreatorPage = ({ setView, editingQuiz = null, setEditingQuiz, onSaveEd
         <Modal
           title="Replace current quiz?"
           description="Uploading will replace the questions you have now. This cannot be undone."
+          onClose={() => setPendingImport(null)}
         >
           <Button type="button" variant="emerald" onClick={confirmImport} className="w-full">
             Replace
